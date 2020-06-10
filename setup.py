@@ -11,7 +11,7 @@ setuptools.setup(
     description="A library to conduct ranking experiments with transformers.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Guzpenha/tranformer_rankers",
+    url="https://github.com/Guzpenha/transformer_rankers",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

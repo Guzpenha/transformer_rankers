@@ -19,11 +19,13 @@ ex = Experiment('BERT-ranker experiment')
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
 
-    train = read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data)
-    valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data)
+    #Load datasets    
+    add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
+    train = read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
+    valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')    
-    
+    #Choose the negative candidate sampler
+    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')        
     if args.negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
         ns_val = RandomNegativeSampler(list(train["response"].values), args.num_ns_eval)
@@ -34,21 +36,28 @@ def run_experiment(args):
                     args.num_ns_eval, 
                     args.data_folder+args.task+"/indexdir_val")
 
+    #Create the loaders for the datasets, with the respective negative samplers
     dataloader = CRRDataLoader(args=args, train_df=train,
                                 val_df=valid, test_df=valid,
                                 tokenizer=tokenizer, negative_sampler_train=ns_train,
                                 negative_sampler_val=ns_val)
     train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
 
+
+    #Instantiate transformer model to be used
     model = BertForSequenceClassification.from_pretrained('bert-base-cased')
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
+    #Instantiate trainer that handles fitting.
     trainer = TransformerTrainer(args, model, train_loader, val_loader, test_loader, 
                                  args.num_ns_eval)
 
+    #Train
     model_name = model.__class__.__name__
     logging.info("Fitting {} for {}{}".format(model_name, args.data_folder, args.task))
     trainer.fit()
+
+    #Predict for test
     logging.info("Predicting")
     preds = trainer.test()
 

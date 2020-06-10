@@ -130,17 +130,17 @@ class CRRDataset(data.Dataset):
                 self.instances.append(feature)
 
             for idx in range(3):
-                logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[i][0][0:50]))
-                logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[i][1][0:50]))                             
-                logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[i]))
+                logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:50]))
+                logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:50]))                             
+                logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
                 logging.info("Set {} Instance {} reconstructed input \n\n{}\n".format(self.data_partition, idx,
-                    self.tokenizer.convert_ids_to_tokens(self.instances[i].input_ids)))
+                    self.tokenizer.convert_ids_to_tokens(self.instances[idx].input_ids)))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
 
         logging.info("Total of {} instances were cached.".format(len(self.instances)))
 
-    def __len__(self):        
+    def __len__(self):
         return len(self.instances)
 
     def __getitem__(self, index):
