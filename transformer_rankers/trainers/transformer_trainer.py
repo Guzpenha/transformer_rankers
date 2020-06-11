@@ -42,12 +42,10 @@ class TransformerTrainer():
 
     def fit(self):
         logging.info("Total batches per epoch : {}".format(len(self.train_loader)))
-        logging.info("Validating every {} epoch.".format(self.validate_epochs))
-        tqdm_dataloader = tqdm(range(self.num_epochs))
-        tqdm_dataloader.set_description('Epoch 0, batch 0, val nDCG@10 _')
+        logging.info("Validating every {} epoch.".format(self.validate_epochs))        
         val_ndcg=0
-        for epoch in tqdm_dataloader:
-            for batch_count, inputs in enumerate(self.train_loader):
+        for epoch in range(self.num_epochs):
+            for batch_count, inputs in tqdm(enumerate(self.train_loader), desc="Epoch {}".format(epoch), total=len(self.train_loader)):
                 self.model.train()
 
                 for k, v in inputs.items():
@@ -74,10 +72,7 @@ class TransformerTrainer():
                 if self.args.sacred_ex != None:
                     self.args.sacred_ex.log_scalar('eval_ndcg_10', val_ndcg, epoch+1)                    
 
-            tqdm_dataloader. \
-                set_description('Epoch {} batch {}, '
-                                'val nDCG@10 {:.3f}'.format(epoch + 1, batch_count+1,
-                                                            val_ndcg))
+            logging.info('Epoch {} val nDCG@10 {:.3f}'.format(epoch + 1, val_ndcg))
 
     def validate(self, loader):
         self.model.eval()

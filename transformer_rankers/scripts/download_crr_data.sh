@@ -1,3 +1,4 @@
+cd ../../
 mkdir data
 
 mkdir data/mantis

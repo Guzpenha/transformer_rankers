@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },{
+            "name": "crr_bert_ranker",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/guzpenha/personal/tranformer_rankers/transformer_rankers/examples/crr_bert_ranker_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--task", "ubuntu_dstc8",
+                "--negative_sampler" ,"tf-idf",
+                "--seed", "1",
+                "--data_folder",
+                "/home/guzpenha/personal/tranformer_rankers/data/",
+                "--output_dir",
+                "/home/guzpenha/personal/tranformer_rankers/data/output_data/",
+                "--sample_data", "100",
+                "--max_seq_len" , "124",
+                "--num_validation_instances", "20",
+                "--num_epochs", "1",
+                "--validate_epochs", "1"
+            ]
+        },{
+            "name": "crr_results_analyses",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/guzpenha/personal/tranformer_rankers/transformer_rankers/examples/crr_results_analyses_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--model_outputs_folder", "/home/guzpenha/personal/tranformer_rankers/data/output_data/",
+                "--identifier_columns", "negative_sampler",
+                "--output_folder", "/home/guzpenha/personal/tranformer_rankers/data/output_data/",
+            ]
+        }
+    ]
+}
