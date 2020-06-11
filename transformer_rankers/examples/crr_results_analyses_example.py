@@ -19,7 +19,7 @@ logging.basicConfig(
     ]
 )
 
-METRICS = ['ndcg_cut_10', 'recip_rank', 'map']
+METRICS = ['R_10@1', 'R_10@2', 'R_10@5', 'R_2@1', 'ndcg_cut_10', 'recip_rank', 'map']
 
 pd.set_option('display.max_columns', None)
 
@@ -68,7 +68,7 @@ def main():
                                 run_folder] + metrics_results)
         except Exception as e:
             logging.info("Error on folder {}".format(run_folder))
-            # logging.info(traceback.format_exception(*sys.exc_info()))
+            logging.info(traceback.format_exception(*sys.exc_info()))
             # raise # reraises the exception
     
     all_metrics_df = pd.DataFrame(all_metrics, columns= identifier_cols 

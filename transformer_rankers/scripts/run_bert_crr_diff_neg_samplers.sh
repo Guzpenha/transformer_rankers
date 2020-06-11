@@ -16,11 +16,11 @@ do
                 --max_seq_len 512 \
                 --num_validation_instances 1000 \
                 --validate_epochs 1 \
-                --num_epochs 5 \
+                --num_epochs 1 \
                 --train_batch_size 8 \
                 --val_batch_size 8 \
                 --num_ns_train 1 \
-                --num_ns_eval 49 \
+                --num_ns_eval 19 \
                 --negative_sampler $NEG_SAMPLER \
                 --seed $SEED
         done
