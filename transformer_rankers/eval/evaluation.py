@@ -51,7 +51,7 @@ def evaluate_models(results):
         results[model]['eval'] = evaluator.evaluate(run)
 
         for query in qrel.keys(): 
-            preds = [
+            preds = []
             labels = []
             for doc in run[query].keys():
                 preds.append(run[query][doc])

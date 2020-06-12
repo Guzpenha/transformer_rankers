@@ -1,4 +1,7 @@
-from transformers import BertTokenizer, PreTrainedTokenizer 
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+
+from transformers import DataCollator
 from transformers.data.processors.utils import InputFeatures
 from transformers.data.data_collator import DefaultDataCollator
 
@@ -6,6 +9,7 @@ from IPython import embed
 from tqdm import tqdm
 from abc import *
 
+import dataclasses
 import functools
 import operator
 import torch.utils.data as data
@@ -15,8 +19,25 @@ import random
 import os
 import pickle
 
+#code from https://colab.research.google.com/github/patil-suraj/exploring-T5/blob/master/T5_on_TPU.ipynb#scrollTo=KdmKlMkfcLa0
+@dataclass
+class T2TDataCollator(DataCollator):
+    def collate_batch(self, batch: List) -> Dict[str, torch.Tensor]:
+        input_ids = torch.stack([torch.tensor(example['input_ids'], dtype=torch.long) for example in batch])
+        lm_labels = torch.stack([torch.tensor(example['target_ids'], dtype=torch.long) for example in batch])
+        lm_labels[lm_labels[:, :] == 0] = -100
+        attention_mask = torch.stack([torch.tensor(example['attention_mask'], dtype=torch.long) for example in batch])
+        decoder_attention_mask = torch.stack([torch.tensor(example['target_attention_mask'], dtype=torch.long) for example in batch])
+
+        return {
+            'input_ids': input_ids, 
+            'attention_mask': attention_mask,
+            'lm_labels': lm_labels, 
+            'decoder_attention_mask': decoder_attention_mask
+        }
+
 class AbstractDataloader(metaclass=ABCMeta):
-    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val):
+    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type):
         self.args = args
         self.train_df = train_df
         self.val_df = val_df
@@ -26,6 +47,7 @@ class AbstractDataloader(metaclass=ABCMeta):
         self.negative_sampler_val = negative_sampler_val
 
         self.num_gpu = torch.cuda.device_count()
+        self.task_type = task_type
 
         if args.max_gpu != -1:
             self.num_gpu = args.max_gpu
@@ -39,13 +61,20 @@ class AbstractDataloader(metaclass=ABCMeta):
         pass
 
 class CRRDataLoader(AbstractDataloader):
-    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val):
-        super().__init__(args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val)
+    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type):
+        super().__init__(args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type)
         special_tokens_dict = {
             'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]']
         }
         self.tokenizer.add_special_tokens(special_tokens_dict)
-        self.data_collator = DefaultDataCollator()
+        if self.task_type == "classification":
+            self.data_collator = DefaultDataCollator()
+        elif self.task_type == "generation":
+            self.data_collator = T2TDataCollator()
+            special_tokens_dict = {
+                'additional_special_tokens': ['not_relevant']
+            }
+            self.tokenizer.add_special_tokens(special_tokens_dict)
 
     def get_pytorch_dataloaders(self):
         train_loader = self._get_train_loader()
@@ -55,7 +84,8 @@ class CRRDataLoader(AbstractDataloader):
 
     def _get_train_loader(self):
         dataset = CRRDataset(self.args, self.train_df,
-                             self.tokenizer,'train', self.negative_sampler_train)
+                             self.tokenizer,'train', self.negative_sampler_train, 
+                             self.task_type)
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.actual_train_batch_size,
                                      shuffle=True,
@@ -64,7 +94,8 @@ class CRRDataLoader(AbstractDataloader):
 
     def _get_val_loader(self):
         dataset = CRRDataset(self.args, self.val_df,
-                             self.tokenizer, 'val', self.negative_sampler_val)
+                             self.tokenizer, 'val', self.negative_sampler_val, 
+                             self.task_type)
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.args.val_batch_size,
                                      shuffle=False,
@@ -73,7 +104,8 @@ class CRRDataLoader(AbstractDataloader):
 
     def _get_test_loader(self):
         dataset = CRRDataset(self.args, self.test_df,
-                             self.tokenizer, 'test', self.negative_sampler_val)
+                             self.tokenizer, 'test', self.negative_sampler_val, 
+                             self.task_type)
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.args.val_batch_size,
                                      shuffle=False,
@@ -81,7 +113,7 @@ class CRRDataLoader(AbstractDataloader):
         return dataloader
 
 class CRRDataset(data.Dataset):
-    def __init__(self, args, data, tokenizer, data_partition, negative_sampler):
+    def __init__(self, args, data, tokenizer, data_partition, negative_sampler, task_type):
         random.seed(42)
 
         self.args = args
@@ -90,16 +122,18 @@ class CRRDataset(data.Dataset):
         self.data_partition = data_partition
         self.negative_sampler = negative_sampler
         self.instances = []
+        self.task_type = task_type
 
         self._cache_instances()
 
     def _cache_instances(self):        
-        signature = "set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}".\
+        signature = "set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}".\
             format(self.data_partition,
                    self.negative_sampler.num_candidates_samples,
                    self.negative_sampler.name,
                    self.args.max_seq_len,
-                   self.args.sample_data)
+                   self.args.sample_data,
+                   self.task_type)
         path = self.args.data_folder + self.args.task + "/" + signature
 
         if os.path.exists(path):
@@ -108,7 +142,10 @@ class CRRDataset(data.Dataset):
                 self.instances = pickle.load(f)
         else:            
             logging.info("Generating instances with signature {}".format(signature))
-            labels = [[1] + ([0] * (self.negative_sampler.num_candidates_samples))] * self.data.shape[0]
+            if self.task_type == "classification":
+                labels = [[1] + ([0] * (self.negative_sampler.num_candidates_samples))] * self.data.shape[0]
+            elif self.task_type == "generation":
+                labels = [["relevant </s>"] + (["not_relevant  </s>"] * (self.negative_sampler.num_candidates_samples))] * self.data.shape[0]
             labels = functools.reduce(operator.iconcat, labels, []) #flattening
 
             examples = []
@@ -122,19 +159,33 @@ class CRRDataset(data.Dataset):
 
             batch_encoding = self.tokenizer.batch_encode_plus(examples, 
                 max_length=self.args.max_seq_len, pad_to_max_length=True)
+            
+            if self.task_type == "generation": 
+                target_encodings = self.tokenizer.batch_encode_plus(labels, 
+                    pad_to_max_length=True, max_length=10)
+                target_encodings = {
+                        "target_ids": target_encodings["input_ids"],
+                        "target_attention_mask": target_encodings["attention_mask"]
+                    }
 
             self.instances = []
             for i in range(len(examples)):
                 inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-                feature = InputFeatures(**inputs, label=labels[i])
-                self.instances.append(feature)
+                if self.task_type == "generation":
+                    targets = {k: target_encodings[k][i] for k in target_encodings}
+                    inputs = {**inputs, **targets}
+                if self.task_type == "classification":
+                    feature = InputFeatures(**inputs, label=labels[i])
+                else:
+                    feature = inputs
+                self.instances.append(feature)            
 
             for idx in range(3):
                 logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:50]))
                 logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:50]))                             
                 logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
-                logging.info("Set {} Instance {} reconstructed input \n\n{}\n".format(self.data_partition, idx,
-                    self.tokenizer.convert_ids_to_tokens(self.instances[idx].input_ids)))
+                # logging.info("Set {} Instance {} reconstructed input \n\n{}\n".format(self.data_partition, idx,
+                #     self.tokenizer.convert_ids_to_tokens(self.instances[idx].input_ids)))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
 

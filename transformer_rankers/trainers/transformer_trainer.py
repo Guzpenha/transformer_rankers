@@ -7,15 +7,19 @@ import logging
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import functools
+import operator
 
 class TransformerTrainer():
     def __init__(self, args, model, train_loader, val_loader, test_loader,
-                 num_ns_eval):
+                 num_ns_eval, task_type, tokenizer):
         self.args = args
         self.validate_epochs = args.validate_epochs
         self.num_validation_instances = args.num_validation_instances
         self.num_ns_eval = num_ns_eval
         self.num_epochs = args.num_epochs
+        self.task_type = task_type
+        self.tokenizer = tokenizer
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +53,7 @@ class TransformerTrainer():
                 self.model.train()
 
                 for k, v in inputs.items():
-                    inputs[k] = v.to(self.device)
+                    inputs[k] = v.to(self.device)                
 
                 outputs = self.model(**inputs)
                 loss = outputs[0] 
@@ -78,19 +82,39 @@ class TransformerTrainer():
         self.model.eval()
         all_logits = []
         all_labels = []
-        for idx, inputs in enumerate(loader):
-            for k, v in inputs.items():
-                inputs[k] = v.to(self.device)
+        for idx, batch in enumerate(loader):
+            for k, v in batch.items():
+                batch[k] = v.to(self.device)
 
             with torch.no_grad():
-                outputs = self.model(**inputs)
-                _, logits = outputs[:2]
-                for p in logits[:, 1]:
-                    all_logits.append(p.tolist())
-                for l in inputs["labels"]:
-                    all_labels.append(l.tolist())
+                if self.task_type == "classification":
+                    outputs = self.model(**batch)
+                    _, logits = outputs[:2]
+                    for p in logits[:, 1]:
+                        all_logits.append(p.tolist())
+                    for l in batch["labels"]:
+                        all_labels.append(l.tolist())
+                elif self.task_type == "generation":
+                    outputs = self.model(**batch)                    
+                    _, token_logits = outputs[:2]
+                    relevant_token_id = self.tokenizer.encode("relevant")[0]
+                    not_relevant_token_id = self.tokenizer.encode("not_relevant")[0]
+                    
+                    pred_relevant = token_logits[0:, 0 , relevant_token_id]
+                    pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
+                    pred = pred_relevant-pred_not_relevant
+                    for p in pred:
+                        all_logits.append(p.tolist())                    
+                    for l in batch["lm_labels"]:
+                        if l[0] == relevant_token_id:
+                            label = 1
+                        else:
+                            label = 0
+                        all_labels.append(label)
+
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
                 break
+
         all_labels, all_logits = acumulate_lists(all_labels, all_logits,
                                                  (self.num_ns_eval+1))
         return self.evaluate(all_logits, all_labels), all_logits

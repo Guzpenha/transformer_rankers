@@ -3,7 +3,7 @@ from transformer_rankers.datasets.crr_dataset import CRRDataLoader
 from transformer_rankers.datasets.preprocess_crr import read_crr_tsv_as_df
 from transformer_rankers.negative_samplers.negative_sampling import RandomNegativeSampler, TfIdfNegativeSampler
 
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 from sacred.observers import FileStorageObserver
 from sacred import Experiment
 from IPython import embed
@@ -13,7 +13,7 @@ import pandas as pd
 import argparse
 import logging
 
-ex = Experiment('BERT-ranker experiment')
+ex = Experiment('T5-ranker experiment')
 
 @ex.main
 def run_experiment(args):
@@ -25,7 +25,7 @@ def run_experiment(args):
     valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     #Choose the negative candidate sampler
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')        
+    tokenizer = T5Tokenizer.from_pretrained('t5-small')        
     if args.negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
         ns_val = RandomNegativeSampler(list(train["response"].values), args.num_ns_eval)
@@ -40,17 +40,17 @@ def run_experiment(args):
     dataloader = CRRDataLoader(args=args, train_df=train,
                                 val_df=valid, test_df=valid,
                                 tokenizer=tokenizer, negative_sampler_train=ns_train,
-                                negative_sampler_val=ns_val, task_type='classification')
+                                negative_sampler_val=ns_val, task_type='generation')
     train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
 
 
     #Instantiate transformer model to be used
-    model = BertForSequenceClassification.from_pretrained('bert-base-cased')
+    model = T5ForConditionalGeneration.from_pretrained('t5-small')
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
     #Instantiate trainer that handles fitting.
     trainer = TransformerTrainer(args, model, train_loader, val_loader, test_loader, 
-                                 args.num_ns_eval, "classification", tokenizer)
+                                         args.num_ns_eval, "generation", tokenizer)
 
     #Train
     model_name = model.__class__.__name__
@@ -76,7 +76,7 @@ def main():
 
     # Input and output configs
     parser.add_argument("--task", default=None, type=str, required=True,
-                        help="the task to run bert ranker for")
+                        help="the task to run T5 ranker for")
     parser.add_argument("--data_folder", default=None, type=str, required=True,
                         help="the folder containing data")
     parser.add_argument("--output_dir", default=None, type=str, required=True,
