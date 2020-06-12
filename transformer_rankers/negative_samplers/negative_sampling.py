@@ -6,6 +6,7 @@ from whoosh.qparser import QueryParser
 import random
 import os
 import logging
+import traceback
 
 class RandomNegativeSampler():
 
@@ -49,10 +50,16 @@ class TfIdfNegativeSampler():
     def sample(self, query_str, relevant_doc):
         # # with self.ix.searcher(weighting=scoring.BM25F()) as searcher:
         with self.ix.searcher(weighting=scoring.TF_IDF()) as searcher:
-            query = QueryParser("content", self.ix.schema).parse(query_str)
-            results = searcher.search(query)
-            sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
-        
+            try:
+                query = QueryParser("content", self.ix.schema).parse(query_str)
+                results = searcher.search(query)
+                sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
+                a = 0/0
+            except Exception as e:
+                logging.info("Error on query: {}\n\n".format(query_str))
+                logging.info(traceback.format_exception(*sys.exc_info()))
+                sampled = []
+
             #If not enough samples are matched, fill with random samples.
             while len(sampled) != self.num_candidates_samples: 
                 sampled = sampled + \
