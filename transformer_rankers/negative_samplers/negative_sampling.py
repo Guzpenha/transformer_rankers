@@ -51,13 +51,13 @@ class TfIdfNegativeSampler():
         with self.ix.searcher(weighting=scoring.TF_IDF()) as searcher:
             query = QueryParser("content", self.ix.schema).parse(query_str)
             results = searcher.search(query)
-        sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
+            sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
         
-        #If not enough samples are matched, fill with random samples.
-        while len(sampled) != self.num_candidates_samples: 
-            sampled = sampled + \
-                [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
-                    if d != relevant_doc]
+            #If not enough samples are matched, fill with random samples.
+            while len(sampled) != self.num_candidates_samples: 
+                sampled = sampled + \
+                    [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
+                        if d != relevant_doc]
         # logging.info("query {}".format(query_str))
         # logging.info("sampled {}".format(sampled))
         return sampled

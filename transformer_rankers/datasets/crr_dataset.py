@@ -112,7 +112,7 @@ class CRRDataset(data.Dataset):
             labels = functools.reduce(operator.iconcat, labels, []) #flattening
 
             examples = []
-            for idx, row in enumerate(tqdm(self.data.itertuples(index=False))):
+            for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
                 context = row[0]
                 relevant_response = row[1]
                 examples.append((context, relevant_response))
