@@ -53,8 +53,7 @@ class TfIdfNegativeSampler():
             try:
                 query = QueryParser("content", self.ix.schema).parse(query_str)
                 results = searcher.search(query)
-                sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
-                a = 0/0
+                sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]                
             except Exception as e:
                 logging.info("Error on query: {}\n\n".format(query_str))
                 logging.info(traceback.format_exception(*sys.exc_info()))
