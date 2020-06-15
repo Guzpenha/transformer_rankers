@@ -28,7 +28,7 @@ def run_experiment(args):
     tokenizer = BertTokenizer.from_pretrained('bert-base-cased')        
     if args.negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
-        ns_val = RandomNegativeSampler(list(train["response"].values), args.num_ns_eval)
+        ns_val = RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
     elif args.negative_sampler == 'tf-idf':
         ns_train = TfIdfNegativeSampler(list(train["response"].values), args.num_ns_train, 
                     args.data_folder+args.task+"/indexdir_train")

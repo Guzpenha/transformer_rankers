@@ -1,7 +1,8 @@
 from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh import scoring
-from whoosh.qparser import QueryParser
+from whoosh.qparser import QueryParser, syntax
+from IPython import embed
 
 import random
 import os
@@ -51,16 +52,17 @@ class TfIdfNegativeSampler():
         # # with self.ix.searcher(weighting=scoring.BM25F()) as searcher:
         with self.ix.searcher(weighting=scoring.TF_IDF()) as searcher:
             try:
-                query = QueryParser("content", self.ix.schema).parse(query_str)
+                query = QueryParser("content", self.ix.schema, group=syntax.OrGroup).parse(query_str)
                 results = searcher.search(query)
-                sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]                
+                sampled = [r["content"] for r in results if r["content"] != relevant_doc][:self.num_candidates_samples]
             except Exception as e:
                 logging.info("Error on query: {}\n\n".format(query_str))
                 logging.info(traceback.format_exception(*sys.exc_info()))
                 sampled = []
-
+            
             #If not enough samples are matched, fill with random samples.
             while len(sampled) != self.num_candidates_samples: 
+                logging.info("Sampling remaining cand for query {}".format(query_str))
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d != relevant_doc]
