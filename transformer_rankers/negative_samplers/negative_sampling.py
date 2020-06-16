@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 from IPython import embed
 
 from whoosh.index import create_in, open_dir
@@ -5,16 +6,18 @@ from whoosh.fields import *
 from whoosh import scoring
 from whoosh.qparser import QueryParser, syntax
 
+import numpy as np
 import scipy.spatial
 import random
 import os
 import logging
 import traceback
 import json
+import pickle
+import faiss
+
 os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
 from pyserini.search import SimpleSearcher
-from sentence_transformers import SentenceTransformer
-import scipy.spatial
 
 class RandomNegativeSampler():
 
@@ -29,7 +32,6 @@ class RandomNegativeSampler():
         while len(sampled) != self.num_candidates_samples:
             sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d != relevant_doc]
         return sampled
-
 
 class TfIdfNegativeSamplerWhoosh():
 
@@ -133,26 +135,40 @@ class BM25NegativeSamplerPyserini():
 
 class SentenceBERTNegativeSampler():
 
-    def __init__(self, candidates, num_candidates_samples, sample_data, seed=42):
+    def __init__(self, candidates, num_candidates_samples, embeddings_file, sample_data, seed=42):
         random.seed(seed)
         self.candidates = candidates
         self.num_candidates_samples = num_candidates_samples        
         self.name = "SentenceBERTNS"
         self.sample_data = sample_data
-        self._calculate_sentence_embeddings()
+        self.embeddings_file = embeddings_file
 
-    def _calculate_sentence_embeddings(self, pre_trained_model='bert-base-nli-stsb-mean-tokens'):        
+        self._calculate_sentence_embeddings()
+        self._build_faiss_index()
+
+    def _calculate_sentence_embeddings(self, pre_trained_model='bert-base-nli-stsb-mean-tokens'):
         self.model = SentenceTransformer(pre_trained_model)
-        logging.info("Calculating embeddings for the candidates.")
-        self.candidate_embeddings = self.model.encode(self.candidates)
+        embeds_file_path = "{}_n_cand_{}".format(self.embeddings_file, self.num_candidates_samples)
+        if not os.path.isfile(embeds_file_path):
+            logging.info("Calculating embeddings for the candidates.")
+            self.candidate_embeddings = self.model.encode(self.candidates)
+            with open(embeds_file_path, 'wb') as f:
+                pickle.dump(self.candidate_embeddings, f)
+        else:
+            with open(embeds_file_path, 'rb') as f:
+                self.candidate_embeddings = pickle.load(f)
+    
+    def _build_faiss_index(self):        
+        self.index = faiss.IndexFlatL2(self.candidate_embeddings[0].shape[0])   # build the index
+        self.index.add(np.array(self.candidate_embeddings))
+        logging.info("Faiss index has a total of {} candidates".format(self.index.ntotal))
 
     def sample(self, query_str, relevant_doc):
-        query_embedding = self.model.encode([query_str])
-        distances = scipy.spatial.distance.cdist(query_embedding, self.candidate_embeddings, "cosine")[0]
-        results = zip(range(len(distances)), distances)
-        results = sorted(results, key=lambda x: x[1])
-        sampled = [self.candidates[r[0]] for r in results[0:self.num_candidates_samples] if self.candidates[r[0]]!= relevant_doc]        
-
+        query_embedding = self.model.encode([query_str], show_progress_bar=False)
+        
+        distances, idxs = self.index.search(np.array(query_embedding), self.num_candidates_samples)        
+        sampled = [self.candidates[idx] for idx in idxs[0] if self.candidates[idx]!=relevant_doc]
+        
         while len(sampled) != self.num_candidates_samples: 
                 # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
                 sampled = sampled + \

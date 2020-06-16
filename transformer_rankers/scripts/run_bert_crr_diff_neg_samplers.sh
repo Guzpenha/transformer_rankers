@@ -5,7 +5,7 @@ ANSERINI_FOLDER=/ssd/home/gustavo/anserini/
 
 for TASK in 'mantis' 'msdialog' 'ubuntu_dstc8'
 do
-    for NEG_SAMPLER in 'bm25' 'random'
+    for NEG_SAMPLER in 'bm25' 'random' 'sentenceBERT'
     do
         for SEED in 42 1 2 3 4
         do
