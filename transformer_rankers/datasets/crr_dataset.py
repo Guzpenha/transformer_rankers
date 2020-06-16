@@ -157,6 +157,7 @@ class CRRDataset(data.Dataset):
                 for ns in ns_candidates:
                     examples.append((context, ns))
 
+            logging.info("Encoding examples using tokenizer.batch_encode_plus().")
             batch_encoding = self.tokenizer.batch_encode_plus(examples, 
                 max_length=self.args.max_seq_len, pad_to_max_length=True)
             
@@ -168,6 +169,7 @@ class CRRDataset(data.Dataset):
                         "target_attention_mask": target_encodings["attention_mask"]
                     }
 
+            logging.info("Transforming examples to instances format.")
             self.instances = []
             for i in range(len(examples)):
                 inputs = {k: batch_encoding[k][i] for k in batch_encoding}

@@ -34,6 +34,11 @@ def run_experiment(args):
                     args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
         ns_val = BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+    elif args.negative_sampler == 'sentenceBERT':
+        ns_train = SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
+                    args.sample_data)
+        ns_val = SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
+                    args.num_ns_eval, args.sample_data)
 
     #Create the loaders for the datasets, with the respective negative samplers
     dataloader = CRRDataLoader(args=args, train_df=train,

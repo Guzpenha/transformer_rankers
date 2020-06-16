@@ -1,9 +1,11 @@
+from IPython import embed
+
 from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh import scoring
 from whoosh.qparser import QueryParser, syntax
-from IPython import embed
 
+import scipy.spatial
 import random
 import os
 import logging
@@ -11,6 +13,8 @@ import traceback
 import json
 os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
 from pyserini.search import SimpleSearcher
+from sentence_transformers import SentenceTransformer
+import scipy.spatial
 
 class RandomNegativeSampler():
 
@@ -119,6 +123,36 @@ class BM25NegativeSamplerPyserini():
         #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
         query_str = query_str[-max_query_len:]        
         sampled = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples) if hit.raw != relevant_doc]        
+        while len(sampled) != self.num_candidates_samples: 
+                # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
+                sampled = sampled + \
+                    [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
+                        if d != relevant_doc]
+        return sampled
+
+
+class SentenceBERTNegativeSampler():
+
+    def __init__(self, candidates, num_candidates_samples, sample_data, seed=42):
+        random.seed(seed)
+        self.candidates = candidates
+        self.num_candidates_samples = num_candidates_samples        
+        self.name = "SentenceBERTNS"
+        self.sample_data = sample_data
+        self._calculate_sentence_embeddings()
+
+    def _calculate_sentence_embeddings(self, pre_trained_model='bert-base-nli-stsb-mean-tokens'):        
+        self.model = SentenceTransformer(pre_trained_model)
+        logging.info("Calculating embeddings for the candidates.")
+        self.candidate_embeddings = self.model.encode(self.candidates)
+
+    def sample(self, query_str, relevant_doc):
+        query_embedding = self.model.encode([query_str])
+        distances = scipy.spatial.distance.cdist(query_embedding, self.candidate_embeddings, "cosine")[0]
+        results = zip(range(len(distances)), distances)
+        results = sorted(results, key=lambda x: x[1])
+        sampled = [self.candidates[r[0]] for r in results[0:self.num_candidates_samples] if self.candidates[r[0]]!= relevant_doc]        
+
         while len(sampled) != self.num_candidates_samples: 
                 # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
                 sampled = sampled + \
