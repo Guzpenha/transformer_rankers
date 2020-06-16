@@ -25,7 +25,7 @@ def run_experiment(args):
     valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     #Choose the negative candidate sampler
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')        
+    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)        
     if args.negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
         ns_val = RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
@@ -44,7 +44,7 @@ def run_experiment(args):
 
 
     #Instantiate transformer model to be used
-    model = BertForSequenceClassification.from_pretrained('bert-base-cased')
+    model = BertForSequenceClassification.from_pretrained(args.transformer_model)
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
     #Instantiate trainer that handles fitting.
@@ -110,6 +110,8 @@ def main():
                         help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 
     #Model hyperparameters
+    parser.add_argument("--transformer_model", default="bert-base-cased", type=str, required=False,
+                        help="Bert model to use (default = bert-base-cased).")
     parser.add_argument("--max_seq_len", default=512, type=int, required=False,
                         help="Maximum sequence length for the inputs.")
     parser.add_argument("--lr", default=5e-6, type=float, required=False,

@@ -20,7 +20,6 @@ logging.basicConfig(
 )
 
 METRICS = ['R_10@1', 'R_10@2', 'R_10@5', 'R_2@1', 'ndcg_cut_10', 'recip_rank', 'map']
-
 pd.set_option('display.max_columns', None)
 
 def main():
@@ -79,13 +78,18 @@ def main():
         agg(['mean', 'std', 'count']). \
         reset_index().round(4)
     col_names = ['dataset'] + identifier_cols
+    count_cols = []
     for metric in METRICS:
         col_names+=[metric+"_mean", metric+"_std",
                     metric+"_count"]
+        count_cols.append(metric+"_count")
 
-    agg_df.columns = col_names
+    agg_df.columns = col_names    
+    agg_df = agg_df.drop(columns=count_cols[0:-1]) # removing duplicate count aggregations
+    agg_df.columns = list(agg_df.columns[0:-1]) + ["count"]
     agg_df.sort_values(['dataset'] + identifier_cols + [metric+"_mean"])\
         .to_csv(args.output_folder+"_aggregated_results.csv", index=False, sep="\t")
+    print(agg_df.sort_values(['dataset'] + identifier_cols + [metric+"_mean"]))
 
 if __name__ == "__main__":
     main()
