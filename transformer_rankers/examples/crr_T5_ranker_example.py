@@ -1,7 +1,7 @@
 from transformer_rankers.trainers.transformer_trainer import TransformerTrainer
 from transformer_rankers.datasets.crr_dataset import CRRDataLoader
 from transformer_rankers.datasets.preprocess_crr import read_crr_tsv_as_df
-from transformer_rankers.negative_samplers.negative_sampling import RandomNegativeSampler, TfIdfNegativeSampler
+from transformer_rankers.negative_samplers.negative_sampling import RandomNegativeSampler, BM25NegativeSamplerPyserini
 
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from sacred.observers import FileStorageObserver
@@ -29,12 +29,11 @@ def run_experiment(args):
     if args.negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
         ns_val = RandomNegativeSampler(list(train["response"].values), args.num_ns_eval)
-    elif args.negative_sampler == 'tf-idf':
-        ns_train = TfIdfNegativeSampler(list(train["response"].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/indexdir_train")
-        ns_val = TfIdfNegativeSampler(list(valid["response"].values) + list(train["response"].values),
-                    args.num_ns_eval, 
-                    args.data_folder+args.task+"/indexdir_val")
+    elif args.negative_sampler == 'bm25':
+        ns_train = BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
+                    args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+        ns_val = BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
 
     #Create the loaders for the datasets, with the respective negative samplers
     dataloader = CRRDataLoader(args=args, train_df=train,
@@ -106,7 +105,9 @@ def main():
     parser.add_argument("--sample_data", default=-1, type=int, required=False,
                          help="Amount of data to sample for training and eval. If no sampling required use -1.")
     parser.add_argument("--negative_sampler", default="random", type=str, required=False,
-                        help="Negative candidates sampler (['random', 'tf-idf']) ")
+                        help="Negative candidates sampler (['random', 'bm25']) ")
+    parser.add_argument("--anserini_folder", default="", type=str, required=False,
+                        help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 
     #Model hyperparameters
     parser.add_argument("--max_seq_len", default=512, type=int, required=False,

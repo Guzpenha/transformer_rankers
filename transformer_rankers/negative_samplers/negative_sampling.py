@@ -8,6 +8,9 @@ import random
 import os
 import logging
 import traceback
+import json
+os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
+from pyserini.search import SimpleSearcher
 
 class RandomNegativeSampler():
 
@@ -24,13 +27,13 @@ class RandomNegativeSampler():
         return sampled
 
 
-class TfIdfNegativeSampler():
+class TfIdfNegativeSamplerWhoosh():
 
     def __init__(self, candidates, num_candidates_samples, path_index, seed=42):
         random.seed(seed)
         self.candidates = candidates
         self.num_candidates_samples = num_candidates_samples
-        self.path_index  = path_index # self.args.data_folder+self.args.task+"/indexdir_{}".format(self.data_partition)
+        self.path_index  = path_index
         self.name = "TfIdfNS"
         self._create_index()
 
@@ -54,7 +57,7 @@ class TfIdfNegativeSampler():
             try:
                 query = QueryParser("content", self.ix.schema, group=syntax.OrGroup).parse(query_str)
                 results = searcher.search(query)
-                sampled = [r["content"] for r in results if r["content"] != relevant_doc][:self.num_candidates_samples]
+                sampled = [r["content"] for r in results[:self.num_candidates_samples] if r["content"] != relevant_doc]
             except Exception as e:
                 logging.info("Error on query: {}\n\n".format(query_str))
                 logging.info(traceback.format_exception(*sys.exc_info()))
@@ -68,4 +71,55 @@ class TfIdfNegativeSampler():
                         if d != relevant_doc]
         # logging.info("query {}".format(query_str))
         # logging.info("sampled {}".format(sampled))
+        return sampled
+
+
+class BM25NegativeSamplerPyserini():
+
+    def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+        random.seed(seed)
+        self.candidates = candidates
+        self.num_candidates_samples = num_candidates_samples
+        self.path_index  = path_index
+        self.name = "BM25NS"
+        self.sample_data = sample_data
+        self.anserini_folder = anserini_folder
+        self._create_index()
+
+        self.searcher = SimpleSearcher(self.path_index+"anserini_index")
+        self.searcher.set_bm25(0.9, 0.4)
+
+    def _generate_anserini_json_collection(self):
+        documents = []
+        doc_set = set()
+        doc_id = 0
+        for candidate in self.candidates:
+            documents.append({'id': doc_id,
+                               'contents': candidate})
+            doc_id+=1
+        return documents
+
+    def _create_index(self):
+        #Create json document files.
+        json_files_path = self.path_index+"json_documents_cand_{}".format(self.sample_data)
+        if not os.path.isdir(json_files_path):
+            os.makedirs(json_files_path)
+            docs = self._generate_anserini_json_collection()
+            for i, doc in enumerate(docs):
+                with open(json_files_path+'/docs{:02d}.json'.format(i), 'w', encoding='utf-8', ) as f:
+                    f.write(json.dumps(doc) + '\n')        
+
+            #Run index java command
+            os.system("sh {}target/appassembler/bin/IndexCollection -collection JsonCollection"   \
+                        " -generator DefaultLuceneDocumentGenerator -threads 9 -input {}" \
+                        " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
+                        format(self.anserini_folder, json_files_path, self.path_index))
+
+    def sample(self, query_str, relevant_doc):
+        sampled = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples) if hit.raw != relevant_doc]        
+        while len(sampled) != self.num_candidates_samples: 
+                logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
+                sampled = sampled + \
+                    [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
+                        if d != relevant_doc]
         return sampled
