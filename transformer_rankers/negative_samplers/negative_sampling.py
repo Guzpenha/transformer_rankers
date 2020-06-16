@@ -115,10 +115,12 @@ class BM25NegativeSamplerPyserini():
                         " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
                         format(self.anserini_folder, json_files_path, self.path_index))
 
-    def sample(self, query_str, relevant_doc):
+    def sample(self, query_str, relevant_doc, max_query_len = 512):        
+        #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
+        query_str = query_str[-max_query_len:]        
         sampled = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples) if hit.raw != relevant_doc]        
         while len(sampled) != self.num_candidates_samples: 
-                logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
+                # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d != relevant_doc]

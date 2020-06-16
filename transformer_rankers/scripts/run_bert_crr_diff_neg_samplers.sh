@@ -1,10 +1,11 @@
 export CUDA_VISIBLE_DEVICES=4,5,6,7
 source /ssd/home/gustavo/transformer_rankers/env/bin/activate
 REPO_DIR=/ssd/home/gustavo/transformer_rankers
+ANSERINI_FOLDER=/ssd/home/gustavo/anserini/
 
 for TASK in 'mantis' 'msdialog' 'ubuntu_dstc8'
 do
-    for NEG_SAMPLER in 'random' 'tf-idf'
+    for NEG_SAMPLER in 'bm25' 'random'
     do
         for SEED in 42 1 2 3 4
         do
@@ -22,7 +23,8 @@ do
                 --num_ns_train 1 \
                 --num_ns_eval 19 \
                 --negative_sampler $NEG_SAMPLER \
-                --seed $SEED
+                --seed $SEED \
+                --anserini_folder $ANSERINI_FOLDER
         done
     done
 done
