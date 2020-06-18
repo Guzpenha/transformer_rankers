@@ -34,6 +34,7 @@ def main():
 
     identifier_cols = args.identifier_columns.split(",")
     all_metrics = []
+    all_logits = []
     for run_folder in [x[0] for x in os.walk(args.model_outputs_folder)]:
         try:
             with open(run_folder+"/config.json") as f:
@@ -46,6 +47,11 @@ def main():
 
                 predictions = pd.read_csv(run_folder+"/predictions.csv")
                 results = calculate_effectiveness(predictions)
+                predictions["seed"] = str(config['seed'])
+                predictions["task"] = config['task']
+                for c in identifier_cols:
+                    predictions[c] = config[c]
+                all_logits.append(predictions[0:10000])
 
                 #Add metrics to the df
                 metrics_results = []
@@ -90,6 +96,9 @@ def main():
     agg_df.sort_values(['dataset'] + identifier_cols + [metric+"_mean"])\
         .to_csv(args.output_folder+"_aggregated_results.csv", index=False, sep="\t")
     print(agg_df.sort_values(['dataset'] + identifier_cols + [metric+"_mean"]))
+
+    all_logits_df = pd.concat(all_logits)
+    all_logits_df.to_csv(args.output_folder+"_logits.csv", index=False, sep="\t")
 
 if __name__ == "__main__":
     main()

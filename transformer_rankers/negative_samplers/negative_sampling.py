@@ -79,7 +79,6 @@ class TfIdfNegativeSamplerWhoosh():
         # logging.info("sampled {}".format(sampled))
         return sampled
 
-
 class BM25NegativeSamplerPyserini():
 
     def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
@@ -132,7 +131,6 @@ class BM25NegativeSamplerPyserini():
                         if d != relevant_doc]
         return sampled
 
-
 class SentenceBERTNegativeSampler():
 
     def __init__(self, candidates, num_candidates_samples, embeddings_file, sample_data, seed=42):
@@ -148,7 +146,7 @@ class SentenceBERTNegativeSampler():
 
     def _calculate_sentence_embeddings(self, pre_trained_model='bert-base-nli-stsb-mean-tokens'):
         self.model = SentenceTransformer(pre_trained_model)
-        embeds_file_path = "{}_n_cand_{}".format(self.embeddings_file, self.num_candidates_samples)
+        embeds_file_path = "{}_n_sample_{}".format(self.embeddings_file, self.sample_data)
         if not os.path.isfile(embeds_file_path):
             logging.info("Calculating embeddings for the candidates.")
             self.candidate_embeddings = self.model.encode(self.candidates)
