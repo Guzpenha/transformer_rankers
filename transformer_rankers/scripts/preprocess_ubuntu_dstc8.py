@@ -1,6 +1,6 @@
 from transformer_rankers.datasets.preprocess_crr import transform_dstc8_to_tsv
 
-data_path = "/home/guzpenha/personal/tranformer_rankers/data/ubuntu_dstc8"
+data_path = "/ssd/home/gustavo/transformer_rankers/data/ubuntu_dstc8"
 for f_path, f_o_path in [("{}/task-1.ubuntu.dev.json".format(data_path), "{}/valid.tsv".format(data_path)),
                          ("{}/task-1.ubuntu.train.json".format(data_path), "{}/train.tsv".format(data_path))]:
     print("transforming {}".format(f_path))

@@ -27,3 +27,7 @@ rm -rf MSDialog
 cd ../../
 mkdir data/ubuntu_dstc8
 cd data/ubuntu_dstc8
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1Ypu-tIu4nT3rZ86bcqAx-lKeNomyve5N' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1Ypu-tIu4nT3rZ86bcqAx-lKeNomyve5N" -O ubuntu_dstc8.zip && rm -rf /tmp/cookies.txt
+unzip ubuntu_dstc8.zip
+mv ubuntu/task-1.ubuntu.dev.json .
+mv ubuntu/task-1.ubuntu.train.json .

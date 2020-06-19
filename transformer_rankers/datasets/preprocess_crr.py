@@ -1,6 +1,7 @@
 from IPython import embed
 import pandas as pd
 import json
+import re
 
 def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
     with open(path, 'r') as f:
@@ -22,12 +23,19 @@ def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
 
 
 def transform_dstc8_to_tsv(path):
+    def remove_participant(utterance):
+        no_participant = re.sub(r'participant_\d+ : ', '', utterance)
+        no_participant = re.sub(r'participant_\d+', '', no_participant)
+        return no_participant
+
     tsv_only_relevant = []
     with open(path) as json_file:
         data = json.load(json_file)
         for example in data:
             if len(example["options-for-correct-answers"])>0:
-                tsv_instance = "1\t" + "\t".join([e["utterance"] for e in example["messages-so-far"]])+"\t"+ \
-                    example["options-for-correct-answers"][0]["utterance"] + "\n"
+                print(example["options-for-correct-answers"][0]["utterance"])
+                print(remove_participant(example["options-for-correct-answers"][0]["utterance"]))
+                tsv_instance = "1\t" + "\t".join([remove_participant(e["utterance"]) for e in example["messages-so-far"]])+"\t"+ \
+                    remove_participant(example["options-for-correct-answers"][0]["utterance"]) + "\n"
                 tsv_only_relevant.append(tsv_instance)
     return tsv_only_relevant
