@@ -26,17 +26,21 @@ def run_experiment(args):
 
     #Choose the negative candidate sampler
     tokenizer = T5Tokenizer.from_pretrained(args.transformer_model)        
-    if args.negative_sampler == 'random':
+    if args.train_negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
-        ns_val = RandomNegativeSampler(list(train["response"].values), args.num_ns_eval)
-    elif args.negative_sampler == 'bm25':
+    elif args.train_negative_sampler == 'bm25':
         ns_train = BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
                     args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+    elif args.train_negative_sampler == 'sentenceBERT':
+        ns_train = SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
+                    args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data)        
+
+    if args.test_negative_sampler == 'random':
+        ns_val = RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
+    elif args.test_negative_sampler == 'bm25':
         ns_val = BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
-    elif args.negative_sampler == 'sentenceBERT':
-        ns_train = SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data)
+    elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data)
 
@@ -109,8 +113,10 @@ def main():
                         help="Number of negatively sampled documents to use during evaluation")
     parser.add_argument("--sample_data", default=-1, type=int, required=False,
                          help="Amount of data to sample for training and eval. If no sampling required use -1.")
-    parser.add_argument("--negative_sampler", default="random", type=str, required=False,
-                        help="Negative candidates sampler (['random', 'bm25']) ")
+    parser.add_argument("--train_negative_sampler", default="random", type=str, required=False,
+                        help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
+    parser.add_argument("--test_negative_sampler", default="random", type=str, required=False,
+                        help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
     parser.add_argument("--anserini_folder", default="", type=str, required=False,
                         help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 

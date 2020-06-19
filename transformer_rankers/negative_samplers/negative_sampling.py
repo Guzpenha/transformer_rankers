@@ -159,6 +159,8 @@ class SentenceBERTNegativeSampler():
     def _build_faiss_index(self):        
         self.index = faiss.IndexFlatL2(self.candidate_embeddings[0].shape[0])   # build the index
         self.index.add(np.array(self.candidate_embeddings))
+        logging.info("There is a total of {} candidates.".format(len(self.candidates)))
+        logging.info("There is a total of {} candidate embeddings.".format(len(self.candidate_embeddings)))
         logging.info("Faiss index has a total of {} candidates".format(self.index.ntotal))
 
     def sample(self, query_str, relevant_doc):
