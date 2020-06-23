@@ -2,12 +2,12 @@
 A library to conduct ranking experiments with transformers.
 
 
-##Setup
+## Setup
 Inside a python (3.6>) virtual enviroment run:
 
     pip install -e .
 
-##Example
+## Example
 The following example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus, for more details of this approach refer to this [paper](https://arxiv.org/abs/1912.08555). See other examples, for instance how to use T5 for this task in [*transformer_ranker/examples/*](https://github.com/Guzpenha/transformer_rankers/tree/master/transformer_rankers/examples).
 
 ```python
@@ -62,7 +62,7 @@ The output of this script will look like this:
     2020-06-23 11:20:03,746 [INFO] Result: 0.3236
 
 
-##Main modules
+## Main modules
 
 ### Datasets
 
