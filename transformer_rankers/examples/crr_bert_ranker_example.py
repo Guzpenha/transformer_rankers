@@ -25,7 +25,7 @@ def run_experiment(args):
     valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     #Choose the negative candidate sampler
-    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)        
+    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     if args.train_negative_sampler == 'random':
         ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':

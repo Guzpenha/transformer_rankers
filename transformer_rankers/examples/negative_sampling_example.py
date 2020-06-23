@@ -74,7 +74,7 @@ def main():
         examples.append(instance)
 
     examples_df = pd.DataFrame(examples, columns=examples_cols)
-    examples_df.to_csv(args.output_dir+"_all_negative_samples.csv", index=False, sep="\t")
+    examples_df.to_csv(args.output_dir+"_all_negative_samples_{}.csv".format(args.task), index=False, sep="\t")
 
 if __name__ == "__main__":
     main()
