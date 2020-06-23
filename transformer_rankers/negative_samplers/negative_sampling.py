@@ -28,13 +28,23 @@ class RandomNegativeSampler():
         self.name = "RandomNS"
         
     def sample(self, _, relevant_doc):
-        sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d != relevant_doc]
+        sampled_initial = random.sample(self.candidates, self.num_candidates_samples)
+        was_relevant_sampled = False
+        relevant_doc_rank = -1
+        sampled = []
+        for i, d in enumerate(sampled_initial):
+            if d == relevant_doc:
+                was_relevant_sampled = True
+                relevant_doc_rank = i
+            else:
+                sampled.append(d)
+
         while len(sampled) != self.num_candidates_samples:
             sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d != relevant_doc]
-        return sampled
+        return sampled, was_relevant_sampled, relevant_doc_rank
 
 class TfIdfNegativeSamplerWhoosh():
-
+    #Deprecated, not efficient enough.
     def __init__(self, candidates, num_candidates_samples, path_index, seed=42):
         random.seed(seed)
         self.candidates = candidates
@@ -122,14 +132,25 @@ class BM25NegativeSamplerPyserini():
 
     def sample(self, query_str, relevant_doc, max_query_len = 512):        
         #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
-        query_str = query_str[-max_query_len:]        
-        sampled = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples) if hit.raw != relevant_doc]        
+        query_str = query_str[-max_query_len:]
+        sampled_initial = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
+
+        was_relevant_sampled = False
+        relevant_doc_rank = -1
+        sampled = []
+        for i, d in enumerate(sampled_initial):
+            if d == relevant_doc:
+                was_relevant_sampled = True
+                relevant_doc_rank = i
+            else:
+                sampled.append(d)
+
         while len(sampled) != self.num_candidates_samples: 
                 # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d != relevant_doc]
-        return sampled
+        return sampled, was_relevant_sampled, relevant_doc_rank
 
 class SentenceBERTNegativeSampler():
 
@@ -167,11 +188,21 @@ class SentenceBERTNegativeSampler():
         query_embedding = self.model.encode([query_str], show_progress_bar=False)
         
         distances, idxs = self.index.search(np.array(query_embedding), self.num_candidates_samples)        
-        sampled = [self.candidates[idx] for idx in idxs[0] if self.candidates[idx]!=relevant_doc]
+        sampled_initial = [self.candidates[idx] for idx in idxs[0]]
         
+        was_relevant_sampled = False
+        relevant_doc_rank = -1
+        sampled = []
+        for i, d in enumerate(sampled_initial):
+            if d == relevant_doc:
+                was_relevant_sampled = True
+                relevant_doc_rank = i
+            else:
+                sampled.append(d)
+
         while len(sampled) != self.num_candidates_samples: 
                 # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d != relevant_doc]
-        return sampled
+        return sampled, was_relevant_sampled, relevant_doc_rank

@@ -153,7 +153,7 @@ class CRRDataset(data.Dataset):
                 context = row[0]
                 relevant_response = row[1]
                 examples.append((context, relevant_response))
-                ns_candidates = self.negative_sampler.sample(context, relevant_response)
+                ns_candidates, _, _ = self.negative_sampler.sample(context, relevant_response)
                 for ns in ns_candidates:
                     examples.append((context, ns))
 
