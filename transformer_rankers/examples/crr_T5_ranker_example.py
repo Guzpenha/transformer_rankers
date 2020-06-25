@@ -45,10 +45,12 @@ def run_experiment(args):
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data)
 
     #Create the loaders for the datasets, with the respective negative samplers
-    dataloader = CRRDataLoader(args=args, train_df=train,
-                                val_df=valid, test_df=valid,
-                                tokenizer=tokenizer, negative_sampler_train=ns_train,
-                                negative_sampler_val=ns_val, task_type='generation')
+    dataloader = CRRDataLoader(train, valid, valid,
+                                tokenizer, ns_train, ns_val,
+                                'generation', args.train_batch_size, 
+                                args.val_batch_size, args.max_seq_len, 
+                                args.sample_data, args.data_folder + args.task)
+
     train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
 
 
@@ -57,8 +59,10 @@ def run_experiment(args):
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
     #Instantiate trainer that handles fitting.
-    trainer = TransformerTrainer(args, model, train_loader, val_loader, test_loader, 
-                                         args.num_ns_eval, "generation", tokenizer)
+    trainer = TransformerTrainer(model, train_loader, val_loader, test_loader, 
+                                        args.num_ns_eval, "generation", tokenizer,
+                                        args.validate_every_epochs, args.num_validation_instances,
+                                        args.num_epochs, args.lr, args.sacred_ex)                                         
 
     #Train
     model_name = model.__class__.__name__
@@ -99,8 +103,8 @@ def main():
                         help="Number of epochs for training.")
     parser.add_argument("--max_gpu", default=-1, type=int, required=False,
                         help="max gpu used")
-    parser.add_argument("--validate_epochs", default=1, type=int, required=False,
-                        help="Run validation every <validate_epochs> epochs.")
+    parser.add_argument("--validate_every_epochs", default=1, type=int, required=False,
+                        help="Run validation every <validate_every_epochs> epochs.")
     parser.add_argument("--num_validation_instances", default=-1, type=int, required=False,
                         help="Run validation for a sample of <num_validation_instances>. To run on all instances use -1.")
     parser.add_argument("--train_batch_size", default=32, type=int, required=False,

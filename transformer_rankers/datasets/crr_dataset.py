@@ -37,21 +37,27 @@ class T2TDataCollator(DataCollator):
         }
 
 class AbstractDataloader(metaclass=ABCMeta):
-    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type):
-        self.args = args
+    def __init__(self, train_df, val_df, test_df, tokenizer,
+                 negative_sampler_train, negative_sampler_val, task_type,
+                 train_batch_size, val_batch_size, max_seq_len, sample_data,
+                 cache_path):
+
         self.train_df = train_df
         self.val_df = val_df
         self.test_df = test_df
         self.tokenizer = tokenizer
         self.negative_sampler_train = negative_sampler_train
         self.negative_sampler_val = negative_sampler_val
+        self.train_batch_size = train_batch_size
+        self.val_batch_size = val_batch_size
+        self.max_seq_len = max_seq_len
+        self.sample_data = sample_data
+        self.cache_path = cache_path
 
         self.num_gpu = torch.cuda.device_count()
         self.task_type = task_type
 
-        if args.max_gpu != -1:
-            self.num_gpu = args.max_gpu
-        self.actual_train_batch_size = self.args.train_batch_size \
+        self.actual_train_batch_size = self.train_batch_size \
                                        * max(1, self.num_gpu)
         logging.info("Train instances per batch {}".
                      format(self.actual_train_batch_size))
@@ -61,12 +67,20 @@ class AbstractDataloader(metaclass=ABCMeta):
         pass
 
 class CRRDataLoader(AbstractDataloader):
-    def __init__(self, args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type):
-        super().__init__(args, train_df, val_df, test_df, tokenizer, negative_sampler_train, negative_sampler_val, task_type)
+    def __init__(self, train_df, val_df, test_df, tokenizer,
+                 negative_sampler_train, negative_sampler_val, task_type,
+                 train_batch_size, val_batch_size, max_seq_len, sample_data,
+                 cache_path):
+        super().__init__(train_df, val_df, test_df, tokenizer,
+                 negative_sampler_train, negative_sampler_val, task_type,
+                 train_batch_size, val_batch_size, max_seq_len, sample_data,
+                 cache_path)
+
         special_tokens_dict = {
             'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]']
         }
         self.tokenizer.add_special_tokens(special_tokens_dict)
+
         if self.task_type == "classification":
             self.data_collator = DefaultDataCollator()
         elif self.task_type == "generation":
@@ -83,9 +97,9 @@ class CRRDataLoader(AbstractDataloader):
         return train_loader, val_loader, test_loader
 
     def _get_train_loader(self):
-        dataset = CRRDataset(self.args, self.train_df,
-                             self.tokenizer,'train', self.negative_sampler_train, 
-                             self.task_type)
+        dataset = CRRDataset(self.train_df, self.tokenizer,'train',
+                             self.negative_sampler_train, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.actual_train_batch_size,
                                      shuffle=True,
@@ -93,36 +107,40 @@ class CRRDataLoader(AbstractDataloader):
         return dataloader
 
     def _get_val_loader(self):
-        dataset = CRRDataset(self.args, self.val_df,
-                             self.tokenizer, 'val', self.negative_sampler_val, 
-                             self.task_type)
+        dataset = CRRDataset(self.val_df, self.tokenizer, 'val', 
+                            self.negative_sampler_val, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
-                                     batch_size=self.args.val_batch_size,
+                                     batch_size=self.val_batch_size,
                                      shuffle=False,
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
     def _get_test_loader(self):
-        dataset = CRRDataset(self.args, self.test_df,
-                             self.tokenizer, 'test', self.negative_sampler_val, 
-                             self.task_type)
+        dataset = CRRDataset(self.test_df, self.tokenizer, 'test', 
+                             self.negative_sampler_val, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
-                                     batch_size=self.args.val_batch_size,
+                                     batch_size=self.val_batch_size,
                                      shuffle=False,
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
 class CRRDataset(data.Dataset):
-    def __init__(self, args, data, tokenizer, data_partition, negative_sampler, task_type):
+    def __init__(self, data, tokenizer, data_partition, 
+                negative_sampler, task_type, max_seq_len, sample_data,
+                cache_path):
         random.seed(42)
 
-        self.args = args
         self.data = data
         self.tokenizer = tokenizer
         self.data_partition = data_partition
         self.negative_sampler = negative_sampler
         self.instances = []
         self.task_type = task_type
+        self.max_seq_len = max_seq_len
+        self.sample_data = sample_data
+        self.cache_path = cache_path
 
         self._cache_instances()
 
@@ -131,10 +149,10 @@ class CRRDataset(data.Dataset):
             format(self.data_partition,
                    self.negative_sampler.num_candidates_samples,
                    self.negative_sampler.name,
-                   self.args.max_seq_len,
-                   self.args.sample_data,
+                   self.max_seq_len,
+                   self.sample_data,
                    self.task_type)
-        path = self.args.data_folder + self.args.task + "/" + signature
+        path = self.cache_path + "/" + signature
 
         if os.path.exists(path):
             with open(path, 'rb') as f:
@@ -152,14 +170,14 @@ class CRRDataset(data.Dataset):
             for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
                 context = row[0]
                 relevant_response = row[1]
-                examples.append((context, relevant_response))
+                examples.append((context, relevant_response))                
                 ns_candidates, _, _ = self.negative_sampler.sample(context, relevant_response)
                 for ns in ns_candidates:
                     examples.append((context, ns))
 
             logging.info("Encoding examples using tokenizer.batch_encode_plus().")
             batch_encoding = self.tokenizer.batch_encode_plus(examples, 
-                max_length=self.args.max_seq_len, pad_to_max_length=True)
+                max_length=self.max_seq_len, pad_to_max_length=True)
             
             if self.task_type == "generation": 
                 target_encodings = self.tokenizer.batch_encode_plus(labels, 
@@ -183,11 +201,9 @@ class CRRDataset(data.Dataset):
                 self.instances.append(feature)            
 
             for idx in range(3):
-                logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:50]))
-                logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:50]))                             
+                logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
+                logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
                 logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
-                # logging.info("Set {} Instance {} reconstructed input \n\n{}\n".format(self.data_partition, idx,
-                #     self.tokenizer.convert_ids_to_tokens(self.instances[idx].input_ids)))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
 

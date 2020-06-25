@@ -18,12 +18,12 @@ import faiss
 
 
 pyserini_usable = True
-if os.path.isfile("/usr/lib/jvm/java-11-openjdk-amd64"):
+if os.path.isdir("/usr/lib/jvm/java-11-openjdk-amd64"):
     os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
     from pyserini.search import SimpleSearcher
 else:
     pyserini_usable = False
-    logging.info("No java found at /usr/lib/jvm/java-11-openjdk-amd64. ")
+    logging.info("No java found at /usr/lib/jvm/java-11-openjdk-amd64.")
 
 class RandomNegativeSampler():
 

@@ -11,15 +11,18 @@ import functools
 import operator
 
 class TransformerTrainer():
-    def __init__(self, args, model, train_loader, val_loader, test_loader,
-                 num_ns_eval, task_type, tokenizer):
-        self.args = args
-        self.validate_epochs = args.validate_epochs
-        self.num_validation_instances = args.num_validation_instances
+    def __init__(self, model, train_loader, val_loader, test_loader,
+                 num_ns_eval, task_type, tokenizer, validate_every_epochs,
+                 num_validation_instances, num_epochs, lr, sacred_ex):        
+
         self.num_ns_eval = num_ns_eval
-        self.num_epochs = args.num_epochs
         self.task_type = task_type
         self.tokenizer = tokenizer
+        self.validate_epochs = validate_every_epochs
+        self.num_validation_instances = num_validation_instances
+        self.num_epochs = num_epochs
+        self.lr = lr
+        self.sacred_ex = sacred_ex
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,9 +32,6 @@ class TransformerTrainer():
         self.model = model.to(self.device)
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
-            if self.args.max_gpu !=-1:
-                devices = devices[0:self.args.max_gpu]
-                logging.info("Using max of {} GPU(s).".format(self.args.max_gpu))
             self.model = nn.DataParallel(self.model, device_ids=devices)
 
         self.metrics = ['recip_rank', 'ndcg_cut_10']
@@ -40,7 +40,7 @@ class TransformerTrainer():
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.optimizer = optim.Adam(self.model.parameters(),
-                                    lr=args.lr)
+                                    lr=self.lr)
 
         self.max_grad_norm = 0.5
 
@@ -73,8 +73,8 @@ class TransformerTrainer():
                 val_ndcg = res['ndcg_cut_10']
                 if val_ndcg>self.best_ndcg:
                     self.best_ndcg = val_ndcg
-                if self.args.sacred_ex != None:
-                    self.args.sacred_ex.log_scalar('eval_ndcg_10', val_ndcg, epoch+1)                    
+                if self.sacred_ex != None:
+                    self.sacred_ex.log_scalar('eval_ndcg_10', val_ndcg, epoch+1)                    
 
             logging.info('Epoch {} val nDCG@10 {:.3f}'.format(epoch + 1, val_ndcg))
 
