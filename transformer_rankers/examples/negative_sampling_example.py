@@ -1,6 +1,6 @@
 from IPython import embed
-from transformer_rankers.negative_samplers.negative_sampling import RandomNegativeSampler, BM25NegativeSamplerPyserini, SentenceBERTNegativeSampler
-from transformer_rankers.datasets.preprocess_crr import read_crr_tsv_as_df
+from transformer_rankers.negative_samplers import negative_sampling
+from transformer_rankers.datasets import preprocess_crr 
 from transformers import BertTokenizer
 from tqdm import tqdm
 
@@ -38,14 +38,14 @@ def main():
 
     #Load datasets
     add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
-    train = read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
-    valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
+    train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
+    valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")        
-    ns_train_random = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)    
-    ns_train_bm25 = BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train,
+    ns_train_random = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)    
+    ns_train_bm25 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train,
                 args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
-    ns_train_sentenceBERT = SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
+    ns_train_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
                 args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data)
 
     examples = []

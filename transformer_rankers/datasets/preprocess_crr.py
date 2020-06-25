@@ -4,6 +4,21 @@ import json
 import re
 
 def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
+    """
+    Transforms conversation response ranking tsv file to a pandas DataFrame.
+
+    The format is label \t utterance_1 \t utterance_2 \t ...... \t candidate_response.
+    See https://guzpenha.github.io/MANtIS/ for more details.
+    Since we do the negative sampling ourselves, we do not get the negative samples from the
+    tsv files, and only read lines with label = 1.
+
+    Args:
+        path: str with the path for the .tsv file.
+        nrows: int indicating the number of rows to read from the file
+        add_turn_separator: whether to add [TURN_SEP] to the context every 2 utterances or not.
+        
+    Returns: pandas DataFrame containing two columns "context" and "response".
+    """
     with open(path, 'r', encoding="utf-8") as f:
         df = []
         for idx, l in enumerate(f):
@@ -23,6 +38,19 @@ def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
 
 
 def transform_dstc8_to_tsv(path):
+    """
+    Transforms dstc8 json format to conversation response ranking tsv file.
+
+    See https://github.com/dstc8-track2/NOESIS-II/ for more details of the input format.
+    The output format is label \t utterance_1 \t utterance_2 \t ...... \t candidate_response.    
+    Since we do the negative sampling ourselves, we do not get the negative samples from the
+    tsv files, and only read lines with label = 1.
+
+    Args:
+        path: str with the path for the json file.
+        
+    Returns: list with the tsv lines.
+    """
     def remove_participant(utterance):
         no_participant = re.sub(r'participant_\d+ : ', '', utterance)
         no_participant = re.sub(r'participant_\d+', '', no_participant)

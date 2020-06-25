@@ -1,7 +1,7 @@
-from transformer_rankers.trainers.transformer_trainer import TransformerTrainer
-from transformer_rankers.datasets.crr_dataset import CRRDataLoader
-from transformer_rankers.datasets.preprocess_crr import read_crr_tsv_as_df
-from transformer_rankers.negative_samplers.negative_sampling import RandomNegativeSampler, BM25NegativeSamplerPyserini, SentenceBERTNegativeSampler
+from transformer_rankers.trainers import transformer_trainer
+from transformer_rankers.datasets import crr_dataset
+from transformer_rankers.datasets import preprocess_crr 
+from transformer_rankers.negative_samplers import negative_sampling 
 
 from transformers import BertTokenizer, BertForSequenceClassification
 from sacred.observers import FileStorageObserver
@@ -21,31 +21,31 @@ def run_experiment(args):
 
     #Load datasets
     add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
-    train = read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
-    valid = read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
+    train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
+    valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     #Choose the negative candidate sampler
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     if args.train_negative_sampler == 'random':
-        ns_train = RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
+        ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
-        ns_train = BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
+        ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
                     args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
     elif args.train_negative_sampler == 'sentenceBERT':
-        ns_train = SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data)        
+        ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
+                    args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)        
 
     if args.test_negative_sampler == 'random':
-        ns_val = RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
+        ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
-        ns_val = BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
+        ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
-        ns_val = SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data)
+        ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
+                    args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
 
     #Create the loaders for the datasets, with the respective negative samplers
-    dataloader = CRRDataLoader(train, valid, valid,
+    dataloader = crr_dataset.CRRDataLoader(train, valid, valid,
                                 tokenizer, ns_train, ns_val,
                                 'classification', args.train_batch_size, 
                                 args.val_batch_size, args.max_seq_len, 
@@ -59,7 +59,7 @@ def run_experiment(args):
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
     #Instantiate trainer that handles fitting.
-    trainer = TransformerTrainer(model, train_loader, val_loader, test_loader, 
+    trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
                                  args.num_ns_eval, "classification", tokenizer,
                                  args.validate_every_epochs, args.num_validation_instances,
                                  args.num_epochs, args.lr, args.sacred_ex)
@@ -121,6 +121,8 @@ def main():
                         help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
     parser.add_argument("--test_negative_sampler", default="random", type=str, required=False,
                         help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
+    parser.add_argument("--bert_sentence_model", default="bert-base-nli-stsb-mean-tokens", type=str, required=False,
+                        help="Pre-trained sentenceBERT model.")                        
     parser.add_argument("--anserini_folder", default="", type=str, required=False,
                         help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 

@@ -1,4 +1,4 @@
-from transformer_rankers.eval.results_analyses_tools import *
+from transformer_rankers.eval import results_analyses_tools
 from IPython import embed
 
 import pandas as pd
@@ -46,7 +46,7 @@ def main():
                 logging.info("Task %s" % (config['task']))
 
                 predictions = pd.read_csv(run_folder+"/predictions.csv")
-                results = calculate_effectiveness(predictions)
+                results = results_analyses_tools.evaluate_predictions_df_one_relevant(predictions)
                 predictions["seed"] = str(config['seed'])
                 predictions["task"] = config['task']
                 for c in identifier_cols:

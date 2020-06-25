@@ -1,4 +1,21 @@
-def acumulate_lists(l1, l2, acum_step):
+from typing import List, Tuple
+
+def acumulate_lists(l1 : List[float], 
+                    l2: List[float], 
+                    acum_step: int) -> Tuple[List[float], List[float]]:
+    """
+    Splits two lists every acum_step and generates two matrices
+
+    Args:
+        l1: The first list of floats
+        l2: The second list of floats
+
+    Returns:
+        A tuple with two matrices containing the resulting lists
+
+    """
+    if len(l1) != len (l2):
+         raise ValueError('Both lists must have the same size.')
     acum_l1 = []
     acum_l2 = []
     current_l1 = []

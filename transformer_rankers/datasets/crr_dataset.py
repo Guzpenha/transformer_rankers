@@ -19,9 +19,11 @@ import random
 import os
 import pickle
 
-#code from https://colab.research.google.com/github/patil-suraj/exploring-T5/blob/master/T5_on_TPU.ipynb#scrollTo=KdmKlMkfcLa0
 @dataclass
 class T2TDataCollator(DataCollator):
+    """
+    Data collator for generation tasks.
+    """
     def collate_batch(self, batch: List) -> Dict[str, torch.Tensor]:
         input_ids = torch.stack([torch.tensor(example['input_ids'], dtype=torch.long) for example in batch])
         lm_labels = torch.stack([torch.tensor(example['target_ids'], dtype=torch.long) for example in batch])
@@ -37,6 +39,22 @@ class T2TDataCollator(DataCollator):
         }
 
 class AbstractDataloader(metaclass=ABCMeta):
+    """
+        Abstract class for the DataLoaders
+
+        Args:
+            train_df: train pandas DataFrame containing columns ["context", "relevant_response"].
+            val_df: validation pandas DataFrame containing columns ["context", "relevant_response"].
+            test_df: test pandas DataFrame containing columns ["context", "relevant_response"].
+            tokenizer: transformer tokenizer.
+            negative_sampler_train: negative sampling class for the training set. Has .sample() function.
+            negative_sampler_val: negative sampling class for the validation/test set. Has .sample() function.
+            train_batch_size: int containing the number of instances in a batch for training.
+            val_batch_size: int containing the number of instances in a batch for validation/test.
+            max_seq_len: int containing the maximum sentence length when processing inputs.
+            sample_data: int containing whether the data was sampled (num_samples) or not (-1).
+            cache_path: str with the path to cache the dataset already in torch tensors format.
+    """
     def __init__(self, train_df, val_df, test_df, tokenizer,
                  negative_sampler_train, negative_sampler_val, task_type,
                  train_batch_size, val_batch_size, max_seq_len, sample_data,
@@ -144,7 +162,10 @@ class CRRDataset(data.Dataset):
 
         self._cache_instances()
 
-    def _cache_instances(self):        
+    def _cache_instances(self):
+        """
+        Loads tensors into memory or creates the dataset when it does not exist already.
+        """
         signature = "set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}".\
             format(self.data_partition,
                    self.negative_sampler.num_candidates_samples,

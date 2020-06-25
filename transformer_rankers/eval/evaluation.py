@@ -1,5 +1,5 @@
-import pytrec_eval
 from IPython import embed
+import pytrec_eval
 
 METRICS = {'map',
            'recip_rank',
@@ -14,6 +14,17 @@ RECALL_AT_W_CAND = {
                     }
 
 def recall_at_with_k_candidates(preds, labels, k, at):
+    """
+    Calculates recall with k candidates. labels list must be sorted by relevance.
+
+    Args:
+        preds: float list containing the predictions.
+        labels: float list containing the relevance labels.
+        k: number of candidates to consider.
+        at: threshold to cut the list.
+        
+    Returns: float containing Recall_k@at
+    """
     num_rel = labels.count(1)
     #'removing' candidates (relevant has to be in first positions in labels)
     preds = preds[:k]
@@ -26,14 +37,17 @@ def recall_at_with_k_candidates(preds, labels, k, at):
 def evaluate_models(results):
     """
     Calculate METRICS for each model in the results dict
-    ----
-    Input example:
-    # results = {
-    #  'model_1': {
-    #     'preds': [[1,2],[1,2]],
-    #     'labels': [[1,2],[1,2]]
-    #   }
-    #}
+    
+    Args:
+        results: dict containing one key for each model and inside them pred and label keys. 
+        For example:    
+             results = {
+              'model_1': {
+                 'preds': [[1,2],[1,2]],
+                 'labels': [[1,2],[1,2]]
+               }
+            }.
+    Returns: dict with the METRIC results per model and query.
     """    
 
     for model in results.keys():
