@@ -164,7 +164,12 @@ else:
      class BM25NegativeSamplerPyserini():
 
         def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
-            pass
+            self.candidates = candidates
+            self.num_candidates_samples = num_candidates_samples
+            self.path_index  = path_index
+            self.name = "BM25NS"
+            self.sample_data = sample_data
+            self.anserini_folder = anserini_folder
         
         def sample(self, query_str, relevant_doc, max_query_len = 512):
              logging.info("no Java installed, pyserini requires java.")
