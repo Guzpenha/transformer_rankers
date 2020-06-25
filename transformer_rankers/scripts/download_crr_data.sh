@@ -17,7 +17,7 @@ cd ../../
 mkdir data/msdialog
 cd data/msdialog
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1R_c8b7Yi0wChA_du3eKDtnOGuYTqVhnY' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1R_c8b7Yi0wChA_du3eKDtnOGuYTqVhnY" -O MSDialog.tar.gz && rm -rf /tmp/cookies.txt
-tar -xzf MSDialog.tar.gz
+tar -zxvf MSDialog.tar.gz
 mv MSDialog/train.tsv .
 mv MSDialog/test.tsv .
 mv MSDialog/valid.tsv .
@@ -31,3 +31,5 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 unzip ubuntu_dstc8.zip
 mv ubuntu/task-1.ubuntu.dev.json .
 mv ubuntu/task-1.ubuntu.train.json .
+cd ../../transformer_rankers/scripts
+python preprocess_ubuntu_dstc8.py

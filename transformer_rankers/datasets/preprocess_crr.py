@@ -4,7 +4,7 @@ import json
 import re
 
 def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding="utf-8") as f:
         df = []
         for idx, l in enumerate(f):
             if nrows != -1 and idx>nrows:
@@ -32,9 +32,7 @@ def transform_dstc8_to_tsv(path):
     with open(path) as json_file:
         data = json.load(json_file)
         for example in data:
-            if len(example["options-for-correct-answers"])>0:
-                print(example["options-for-correct-answers"][0]["utterance"])
-                print(remove_participant(example["options-for-correct-answers"][0]["utterance"]))
+            if len(example["options-for-correct-answers"])>0:                
                 tsv_instance = "1\t" + "\t".join([remove_participant(e["utterance"]) for e in example["messages-so-far"]])+"\t"+ \
                     remove_participant(example["options-for-correct-answers"][0]["utterance"]) + "\n"
                 tsv_only_relevant.append(tsv_instance)

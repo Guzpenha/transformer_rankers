@@ -16,8 +16,14 @@ import json
 import pickle
 import faiss
 
-os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
-from pyserini.search import SimpleSearcher
+
+pyserini_usable = True
+if os.path.isfile("/usr/lib/jvm/java-11-openjdk-amd64"):
+    os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
+    from pyserini.search import SimpleSearcher
+else:
+    pyserini_usable = False
+    logging.info("No java found at /usr/lib/jvm/java-11-openjdk-amd64. ")
 
 class RandomNegativeSampler():
 
@@ -89,68 +95,79 @@ class TfIdfNegativeSamplerWhoosh():
         # logging.info("sampled {}".format(sampled))
         return sampled
 
-class BM25NegativeSamplerPyserini():
 
-    def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
-        random.seed(seed)
-        self.candidates = candidates
-        self.num_candidates_samples = num_candidates_samples
-        self.path_index  = path_index
-        self.name = "BM25NS"
-        self.sample_data = sample_data
-        self.anserini_folder = anserini_folder
-        self._create_index()
+if pyserini_usable:
+    class BM25NegativeSamplerPyserini():
 
-        self.searcher = SimpleSearcher(self.path_index+"anserini_index")
-        self.searcher.set_bm25(0.9, 0.4)
+        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+            random.seed(seed)
+            self.candidates = candidates
+            self.num_candidates_samples = num_candidates_samples
+            self.path_index  = path_index
+            self.name = "BM25NS"
+            self.sample_data = sample_data
+            self.anserini_folder = anserini_folder
+            self._create_index()
 
-    def _generate_anserini_json_collection(self):
-        documents = []
-        doc_set = set()
-        doc_id = 0
-        for candidate in self.candidates:
-            documents.append({'id': doc_id,
-                               'contents': candidate})
-            doc_id+=1
-        return documents
+            self.searcher = SimpleSearcher(self.path_index+"anserini_index")
+            self.searcher.set_bm25(0.9, 0.4)
 
-    def _create_index(self):
-        #Create json document files.
-        json_files_path = self.path_index+"json_documents_cand_{}".format(self.sample_data)
-        if not os.path.isdir(json_files_path):
-            os.makedirs(json_files_path)
-            docs = self._generate_anserini_json_collection()
-            for i, doc in enumerate(docs):
-                with open(json_files_path+'/docs{:02d}.json'.format(i), 'w', encoding='utf-8', ) as f:
-                    f.write(json.dumps(doc) + '\n')        
+        def _generate_anserini_json_collection(self):
+            documents = []
+            doc_set = set()
+            doc_id = 0
+            for candidate in self.candidates:
+                documents.append({'id': doc_id,
+                                'contents': candidate})
+                doc_id+=1
+            return documents
 
-            #Run index java command
-            os.system("sh {}target/appassembler/bin/IndexCollection -collection JsonCollection"   \
-                        " -generator DefaultLuceneDocumentGenerator -threads 9 -input {}" \
-                        " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
-                        format(self.anserini_folder, json_files_path, self.path_index))
+        def _create_index(self):
+            #Create json document files.
+            json_files_path = self.path_index+"json_documents_cand_{}".format(self.sample_data)
+            if not os.path.isdir(json_files_path):
+                os.makedirs(json_files_path)
+                docs = self._generate_anserini_json_collection()
+                for i, doc in enumerate(docs):
+                    with open(json_files_path+'/docs{:02d}.json'.format(i), 'w', encoding='utf-8', ) as f:
+                        f.write(json.dumps(doc) + '\n')        
 
-    def sample(self, query_str, relevant_doc, max_query_len = 512):        
-        #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
-        query_str = query_str[-max_query_len:]
-        sampled_initial = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
+                #Run index java command
+                os.system("sh {}target/appassembler/bin/IndexCollection -collection JsonCollection"   \
+                            " -generator DefaultLuceneDocumentGenerator -threads 9 -input {}" \
+                            " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
+                            format(self.anserini_folder, json_files_path, self.path_index))
 
-        was_relevant_sampled = False
-        relevant_doc_rank = -1
-        sampled = []
-        for i, d in enumerate(sampled_initial):
-            if d == relevant_doc:
-                was_relevant_sampled = True
-                relevant_doc_rank = i
-            else:
-                sampled.append(d)
+        def sample(self, query_str, relevant_doc, max_query_len = 512):        
+            #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
+            query_str = query_str[-max_query_len:]
+            sampled_initial = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
 
-        while len(sampled) != self.num_candidates_samples: 
-                # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
-                sampled = sampled + \
-                    [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
-                        if d != relevant_doc]
-        return sampled, was_relevant_sampled, relevant_doc_rank
+            was_relevant_sampled = False
+            relevant_doc_rank = -1
+            sampled = []
+            for i, d in enumerate(sampled_initial):
+                if d == relevant_doc:
+                    was_relevant_sampled = True
+                    relevant_doc_rank = i
+                else:
+                    sampled.append(d)
+
+            while len(sampled) != self.num_candidates_samples: 
+                    # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
+                    sampled = sampled + \
+                        [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
+                            if d != relevant_doc]
+            return sampled, was_relevant_sampled, relevant_doc_rank
+
+else:
+     class BM25NegativeSamplerPyserini():
+
+        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+            pass
+        
+        def sample(self, query_str, relevant_doc, max_query_len = 512):
+             logging.info("no Java installed, pyserini requires java.")
 
 class SentenceBERTNegativeSampler():
 
@@ -166,6 +183,8 @@ class SentenceBERTNegativeSampler():
         self._build_faiss_index()
 
     def _calculate_sentence_embeddings(self, pre_trained_model='bert-base-nli-stsb-mean-tokens'):
+    # def _calculate_sentence_embeddings(self, pre_trained_model='roberta-large-nli-stsb-mean-tokens'):
+
         self.model = SentenceTransformer(pre_trained_model)
         embeds_file_path = "{}_n_sample_{}".format(self.embeddings_file, self.sample_data)
         if not os.path.isfile(embeds_file_path):

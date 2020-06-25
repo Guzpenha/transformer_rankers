@@ -10,3 +10,5 @@ Whoosh==2.7.4
 scipy==1.4.1
 sentence-transformers==0.2.6.1
 faiss-cpu==1.6.3
+dataclasses
+pyserini
