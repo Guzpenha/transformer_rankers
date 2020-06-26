@@ -81,6 +81,17 @@ def run_experiment(args):
     if args.save_model:
         torch.save(model.state_dict(), args.output_dir+"/"+args.run_id+"/model")
 
+    #In case we want to get uncertainty estimations at prediction time
+    if args.predict_with_uncertainty_estimation:  
+        logging.info("Predicting with dropout.")      
+        preds, uncertainties = trainer.test_with_dropout(args.num_foward_prediction_passes)
+        
+        preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(len(preds[0]))])
+        preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout.csv", index=False)
+        
+        uncertainties_df = pd.DataFrame(preds, columns=["uncertainty_"+str(i) for i in range(len(preds[0]))])
+        uncertainties_df.to_csv(args.output_dir+"/"+args.run_id+"/uncertainties.csv", index=False)
+
     return trainer.best_ndcg
 
 def main():
@@ -93,7 +104,7 @@ def main():
                         help="the folder containing data")
     parser.add_argument("--output_dir", default=None, type=str, required=True,
                         help="the folder to output predictions")
-    parser.add_argument("--save_model", default=False, type=str, required=False,
+    parser.add_argument("--save_model", default=False, type=bool, required=False,
                         help="Save trained model at the end of training.")
 
     #Training procedure
@@ -133,6 +144,13 @@ def main():
                         help="Maximum sequence length for the inputs.")
     parser.add_argument("--lr", default=5e-6, type=float, required=False,
                         help="Learning rate.")
+
+    #Uncertainty estimation hyperparameters
+    parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,
+                        help="Whether to use dropout at test time to get relevance (mean) and uncertainties (variance).")
+    parser.add_argument("--num_foward_prediction_passes", default=10, type=int, required=False,
+                        help="Number of foward passes with dropout to obtain mean and variance of predictions. "+
+                             "Only used if predict_with_uncertainty_estimation == True.")
 
     args = parser.parse_args()
     args.sacred_ex = ex

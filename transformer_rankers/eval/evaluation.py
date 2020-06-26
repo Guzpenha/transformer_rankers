@@ -60,7 +60,7 @@ def evaluate_models(results):
             qrel['q{}'.format(i+1)] = {}
             for j, _ in enumerate(range(len(p))):
                 run['q{}'.format(i+1)]['d{}'.format(j+1)] = float(preds[i][j])
-                qrel['q{}'.format(i + 1)]['d{}'.format(j + 1)] = int(labels[i][j])
+                qrel['q{}'.format(i + 1)]['d{}'.format(j + 1)] = int(labels[i][j])        
         evaluator = pytrec_eval.RelevanceEvaluator(qrel, METRICS)
         results[model]['eval'] = evaluator.evaluate(run)
 

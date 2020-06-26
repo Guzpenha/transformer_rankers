@@ -6,6 +6,7 @@ from transformer_rankers.utils import utils
 import logging
 import torch
 import torch.nn as nn
+import numpy as np
 import torch.optim as optim
 import functools
 import operator
@@ -25,6 +26,7 @@ class TransformerTrainer():
         task_type: str with either 'classification' or 'generation' for SequenceClassification models and ConditionalGeneration models.
         tokenizer: transformer tokenizer.
         validate_every_epochs: int containing the cycle to calculate validation ndcg.
+        num_validation_instances: number of validation instances to use (-1 if all)
         num_epochs: int containing the number of epochs to train the model (one epoch = one pass on every instance).
         lr: float containing the learning rate.
         sacred_ex: sacred experiment object to log train metrics. None if not to be used.
@@ -91,7 +93,7 @@ class TransformerTrainer():
                 self.optimizer.zero_grad()
 
             if self.validate_epochs > 0 and epoch % self.validate_epochs == 0:
-                res, _ = self._validate(loader = self.val_loader)
+                res, _ = self.predict(loader = self.val_loader)
                 val_ndcg = res['ndcg_cut_10']
                 if val_ndcg>self.best_ndcg:
                     self.best_ndcg = val_ndcg
@@ -100,7 +102,7 @@ class TransformerTrainer():
 
             logging.info('Epoch {} val nDCG@10 {:.3f}'.format(epoch + 1, val_ndcg))
 
-    def _validate(self, loader):
+    def predict(self, loader):
         """
         Uses trained model to make predictions on the loader.
 
@@ -124,10 +126,9 @@ class TransformerTrainer():
                 if self.task_type == "classification":
                     outputs = self.model(**batch)
                     _, logits = outputs[:2]
-                    for p in logits[:, 1]:
-                        all_logits.append(p.tolist())
-                    for l in batch["labels"]:
-                        all_labels.append(l.tolist())
+                    all_labels+=batch["labels"].tolist()
+                    all_logits+=logits[:, 1].tolist()
+
                 elif self.task_type == "generation":
                     outputs = self.model(**batch)                    
                     _, token_logits = outputs[:2]
@@ -136,21 +137,87 @@ class TransformerTrainer():
 
                     pred_relevant = token_logits[0:, 0 , relevant_token_id]
                     pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
-                    pred = pred_relevant-pred_not_relevant
-                    for p in pred:
-                        all_logits.append(p.tolist())                    
-                    for l in batch["lm_labels"]:
-                        if l[0] == relevant_token_id:
-                            label = 1
-                        else:
-                            label = 0
-                        all_labels.append(label)
+                    pred = pred_relevant-pred_not_relevant                    
+
+                    all_logits+=pred.tolist()
+                    all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
 
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
                 break
 
-        all_labels, all_logits = utils.acumulate_lists(all_labels, all_logits, self.num_ns_eval+1)
+        #accumulates per query
+        all_labels = utils.acumulate_list(all_labels, self.num_ns_eval+1)
+        all_logits = utils.acumulate_list(all_logits, self.num_ns_eval+1)
         return results_analyses_tools.evaluate_and_aggregate(all_logits, all_labels, self.metrics), all_logits
+
+    def predict_with_uncertainty(self, loader, foward_passes):
+        """
+        Uses trained model to make predictions on the loader with uncertainty estimations.
+
+        This methods uses dropout to get the predicted relevance (mean) and uncertainty (variance)
+        by enabling dropout at test time and making K foward passes. Use foward_passes=1 for deterministic
+        point-estimate relevance predictions.
+
+        See "Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning"
+        https://arxiv.org/abs/1506.02142.
+
+        Args:
+            loader: DataLoader containing the set to run the prediction and evaluation.         
+            foward_passes: int indicating the number of foward prediction passes for each instance.
+
+        Returns:
+            A tuple of (results_dict, logits, uncertainties), containing the evaluation metrics, the
+            values of the predictions for every instance and the uncertainty (variance). For example:
+            ({ 'ndcg_cut_10': 0.5,  'recip_rank': 0.4 },  [[0.01, 0.12], [1.2, 0.9], [0.05, 0.5]])
+        """
+        def enable_dropout(model):
+            for module in model.modules():
+                if module.__class__.__name__.startswith('Dropout'):
+                    module.train()
+
+        self.model.eval()
+        enable_dropout(self.model)
+
+        if self.task_type == "generation":
+            relevant_token_id = self.tokenizer.encode("relevant")[0]
+            not_relevant_token_id = self.tokenizer.encode("not_relevant")[0]
+
+        logits = []
+        labels = []
+        uncertainties = []
+        for idx, batch in tqdm(enumerate(loader), total=len(loader)):
+            for k, v in batch.items():
+                batch[k] = v.to(self.device)
+
+            with torch.no_grad():
+                if self.task_type == "classification":                    
+                    labels+= batch["labels"].tolist()
+                    fwrd_predictions = []
+                    for f_pass in range(foward_passes):
+                        outputs = self.model(**batch)
+                        _, batch_logits = outputs[:2]
+                        fwrd_predictions.append(batch_logits[:, 1].tolist())
+                elif self.task_type == "generation":
+                    labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
+                    fwrd_predictions = []
+                    for f_pass in range(foward_passes):
+                        outputs = self.model(**batch)
+                        _, token_logits = outputs[:2]
+                        pred_relevant = token_logits[0:, 0 , relevant_token_id]
+                        pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
+                        pred = pred_relevant-pred_not_relevant
+                        fwrd_predictions.append(pred.tolist())
+
+                logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
+                uncertainties += np.array(fwrd_predictions).std(axis=0).tolist()
+            if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
+                break        
+
+        #accumulates per query
+        labels = utils.acumulate_list(labels, self.num_ns_eval+1)
+        logits = utils.acumulate_list(logits, self.num_ns_eval+1)
+        uncertainties = utils.acumulate_list(uncertainties, self.num_ns_eval+1)
+        return results_analyses_tools.evaluate_and_aggregate(logits, labels, self.metrics), logits, uncertainties
 
     def test(self):
         """
@@ -158,11 +225,23 @@ class TransformerTrainer():
 
         Returns:
             The logits, i.e. predictions,  for the test instances
-        """
-
-        logging.info("Starting evaluation on test.")
+        """        
         self.num_validation_instances = -1 # no sample on test.
-        res, logits = self._validate(self.test_loader)
+        res, logits = self.predict(self.test_loader)
         for metric, v in res.items():
             logging.info("Test {} : {:4f}".format(metric, v))
         return logits
+    
+    def test_with_dropout(self, foward_passes):
+        """
+        Uses trained model to make predictions on the test loader using dropout as bayesian estimation.
+
+        Returns:
+            Tuple with the logits, i.e. average predictions,  for the test instances 
+            and the uncertainties, i.e. variance.
+        """        
+        self.num_validation_instances = -1 # no sample on test.
+        res, logits, uncertainties = self.predict_with_uncertainty(self.test_loader, foward_passes)
+        for metric, v in res.items():
+            logging.info("Test (w. dropout and {} foward passes) {} : {:4f}".format(foward_passes, metric, v))
+        return logits, uncertainties

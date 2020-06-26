@@ -34,8 +34,9 @@ def main():
 
     identifier_cols = args.identifier_columns.split(",")
     all_metrics = []
-    all_logits = []
-    for run_folder in [x[0] for x in os.walk(args.model_outputs_folder)]:
+    all_logits = []    
+    folders = [args.model_outputs_folder+name for name in os.listdir(args.model_outputs_folder) if os.path.isdir(args.model_outputs_folder+name)]
+    for run_folder in folders:        
         try:
             with open(run_folder+"/config.json") as f:
                 config = json.load(f)['args']
