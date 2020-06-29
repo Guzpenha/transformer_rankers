@@ -15,6 +15,14 @@ import logging
 
 ex = Experiment('BERT-ranker experiment')
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
 @ex.main
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
@@ -154,14 +162,6 @@ def main():
 
     args = parser.parse_args()
     args.sacred_ex = ex
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.StreamHandler()
-        ]
-    )
 
     ex.observers.append(FileStorageObserver(args.output_dir))
     ex.add_config({'args': args})
