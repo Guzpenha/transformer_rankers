@@ -12,6 +12,7 @@ import torch
 import pandas as pd
 import argparse
 import logging
+import sys
 
 ex = Experiment('T5-ranker experiment')
 
@@ -19,7 +20,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.StreamHandler()
+        logging.StreamHandler(sys.stdout)
     ]
 )
 
