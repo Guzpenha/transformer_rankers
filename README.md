@@ -31,9 +31,9 @@ ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) 
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
 
 dataloader = crr_dataset.CRRDataLoader(train_df=train, val_df=valid, test_df=valid,
-                                tokenizer=tokenizer, negative_sampler_train= ns_train, 
-                                negative_sampler_val=ns_val,task_type='classification', 
-                                train_batch_size=32, val_batch_size= 32, max_seq_len=512, 
+                                tokenizer=tokenizer, negative_sampler_train=ns_train, 
+                                negative_sampler_val=ns_val, task_type='classification', 
+                                train_batch_size=32, val_batch_size=32, max_seq_len=512, 
                                 sample_data=-1, "data/mantis")
 
 train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()

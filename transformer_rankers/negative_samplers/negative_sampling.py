@@ -195,24 +195,25 @@ class SentenceBERTNegativeSampler():
                 pre_trained_model='bert-base-nli-stsb-mean-tokens', seed=42):
         random.seed(seed)
         self.candidates = candidates
-        self.num_candidates_samples = num_candidates_samples        
-        self.name = "SentenceBERTNS_"+pre_trained_model
-        self.sample_data = sample_data
-        self.embeddings_file = embeddings_file
+        self.num_candidates_samples = num_candidates_samples
         self.pre_trained_model = pre_trained_model
 
-        self._calculate_sentence_embeddings(pre_trained_model)
+        self.model = SentenceTransformer(self.pre_trained_model)
+        #extract the name of the folder with the pre-trained sentence embedding        
+        if os.path.isdir(self.pre_trained_model):
+            self.pre_trained_model = self.pre_trained_model.split("/")[-1] 
+
+        self.name = "SentenceBERTNS_"+self.pre_trained_model
+        self.sample_data = sample_data
+        self.embeddings_file = embeddings_file        
+
+        self._calculate_sentence_embeddings()
         self._build_faiss_index()
 
-    def _calculate_sentence_embeddings(self, pre_trained_model):
+    def _calculate_sentence_embeddings(self):
         """
         Calculates sentenceBERT embeddings for all candidates.
-          
-        Args:
-            pre_trained_model: str containing the pre-trained sentence embedding model, 
-            e.g. bert-base-nli-stsb-mean-tokens.
         """
-        self.model = SentenceTransformer(pre_trained_model)
         embeds_file_path = "{}_n_sample_{}_pre_trained_model_{}".format(self.embeddings_file,
                                                                         self.sample_data,
                                                                         self.pre_trained_model)
