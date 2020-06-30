@@ -98,7 +98,7 @@ def run_experiment(args):
         preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(len(preds[0]))])
         preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout.csv", index=False)
         
-        uncertainties_df = pd.DataFrame(preds, columns=["uncertainty_"+str(i) for i in range(len(preds[0]))])
+        uncertainties_df = pd.DataFrame(uncertainties, columns=["uncertainty_"+str(i) for i in range(len(preds[0]))])
         uncertainties_df.to_csv(args.output_dir+"/"+args.run_id+"/uncertainties.csv", index=False)
 
     return trainer.best_ndcg

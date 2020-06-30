@@ -209,9 +209,9 @@ class TransformerTrainer():
                         fwrd_predictions.append(pred.tolist())
 
                 logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
-                uncertainties += np.array(fwrd_predictions).std(axis=0).tolist()
+                uncertainties += np.array(fwrd_predictions).var(axis=0).tolist()
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
-                break        
+                break
 
         #accumulates per query
         labels = utils.acumulate_list(labels, self.num_ns_eval+1)
