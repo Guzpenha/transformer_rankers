@@ -18,7 +18,7 @@ do
                     --sample_data -1 \
                     --max_seq_len 512 \
                     --num_validation_instances 1000 \
-                    --validate_epochs 1 \
+                    --validate_every_epochs 1 \
                     --num_epochs 1 \
                     --train_batch_size 8 \
                     --val_batch_size 8 \
