@@ -39,7 +39,7 @@ def run_experiment(args):
         ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
         ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+                    args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
     elif args.train_negative_sampler == 'sentenceBERT':
         ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
                     args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)        
@@ -48,7 +48,7 @@ def run_experiment(args):
         ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
         ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
@@ -71,7 +71,7 @@ def run_experiment(args):
     trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
                                         args.num_ns_eval, "generation", tokenizer,
                                         args.validate_every_epochs, args.num_validation_instances,
-                                        args.num_epochs, args.lr, args.sacred_ex)                                         
+                                        args.num_epochs, args.lr, args.sacred_ex)
 
     #Train
     model_name = model.__class__.__name__
@@ -91,8 +91,8 @@ def run_experiment(args):
         torch.save(model.state_dict(), args.output_dir+"/"+args.run_id+"/model")
 
     #In case we want to get uncertainty estimations at prediction time
-    if args.predict_with_uncertainty_estimation:  
-        logging.info("Predicting with dropout.")      
+    if args.predict_with_uncertainty_estimation:
+        logging.info("Predicting with dropout.")
         preds, uncertainties = trainer.test_with_dropout(args.num_foward_prediction_passes)
         
         preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(len(preds[0]))])

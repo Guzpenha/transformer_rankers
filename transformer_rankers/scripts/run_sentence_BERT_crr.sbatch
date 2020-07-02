@@ -16,7 +16,7 @@ REPO_DIR=/tudelft.net/staff-umbrella/conversationalsearch/transformer_rankers/
 
 for TASK in 'mantis' 'msdialog' 'ubuntu_dstc8'
 do    
-    python run_sentence_BERT.py \
+    python train_sentenceBERT_crr.py \
         --task $TASK \
         --data_folder $REPO_DIR/data/ \
         --output_dir $REPO_DIR/data/$TASK/ \

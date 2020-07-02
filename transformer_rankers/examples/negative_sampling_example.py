@@ -42,11 +42,12 @@ def main():
     valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
 
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")        
-    ns_train_random = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)    
-    ns_train_bm25 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train,
-                args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
-    ns_train_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
-                args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data)
+    ns_valid_random = negative_sampling.RandomNegativeSampler(list(train["response"].values)+list(valid["response"].values), args.num_ns_train)    
+    ns_valid_bm25 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values)+list(valid["response"].values), args.num_ns_train,
+                args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
+    ns_valid_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values)+list(valid["response"].values), args.num_ns_train, 
+                args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, 
+                args.data_folder+args.task+"/bert-base-cased_{}".format(args.task)) #pre-trained embedding
 
     examples = []
     examples_cols = ["context", "relevant_response"] + \
@@ -58,14 +59,14 @@ def main():
         ["sentenceBERT_retrieved_relevant", "sentenceBERT_rank"]
     
     logging.info("Retrieving candidates using random, bm25 and sentenceBERT.")
-    for idx, row in enumerate(tqdm(train.itertuples(index=False), total=len(train))):
+    for idx, row in enumerate(tqdm(valid.itertuples(index=False), total=len(valid))):
         context = row[0]
         relevant_response = row[1]
         instance = [context, relevant_response]
 
-        for ns_name, ns in [("random", ns_train_random),
-                            ("bm25", ns_train_bm25),
-                            ("sentenceBERT", ns_train_sentenceBERT)]:
+        for ns_name, ns in [("random", ns_valid_random),
+                            ("bm25", ns_valid_bm25),
+                            ("sentenceBERT", ns_valid_sentenceBERT)]:
             ns_candidates, had_relevant, rank_relevant = ns.sample(context, relevant_response)
             for ns in ns_candidates:
                 instance.append(ns)
@@ -74,7 +75,7 @@ def main():
         examples.append(instance)
 
     examples_df = pd.DataFrame(examples, columns=examples_cols)
-    examples_df.to_csv(args.output_dir+"_all_negative_samples_{}.csv".format(args.task), index=False, sep="\t")
+    examples_df.to_csv(args.output_dir+"/_all_negative_samples_{}.csv".format(args.task), index=False, sep="\t")
 
 if __name__ == "__main__":
     main()

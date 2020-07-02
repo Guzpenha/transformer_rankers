@@ -11,4 +11,7 @@ do
         --sample_data -1 \
         --anserini_folder /ssd/home/gustavo/anserini/ \
         --num_ns_train 10
+
+    python select_ns_examples.py --task $TASK \
+        --output_dir /ssd/home/gustavo/transformer_rankers/data/output_data/
 done

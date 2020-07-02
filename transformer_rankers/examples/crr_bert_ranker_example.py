@@ -39,7 +39,7 @@ def run_experiment(args):
         ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
         ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+                    args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
     elif args.train_negative_sampler == 'sentenceBERT':
         ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
                     args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)        
@@ -48,7 +48,7 @@ def run_experiment(args):
         ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
         ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/anserini/", args.sample_data, args.anserini_folder)
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
