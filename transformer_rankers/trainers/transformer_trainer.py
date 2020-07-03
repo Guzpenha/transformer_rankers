@@ -55,8 +55,7 @@ class TransformerTrainer():
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
             self.model = nn.DataParallel(self.model, device_ids=devices)
-
-        self.metrics = ['ndcg_cut_10']
+        
         self.best_ndcg=0
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -93,7 +92,8 @@ class TransformerTrainer():
                 self.optimizer.zero_grad()
 
             if self.validate_epochs > 0 and epoch % self.validate_epochs == 0:
-                res, _ = self.predict(loader = self.val_loader)
+                logits, labels = self.predict(loader = self.val_loader)
+                res = results_analyses_tools.evaluate_and_aggregate(logits, labels, ['ndcg_cut_10'])
                 val_ndcg = res['ndcg_cut_10']
                 if val_ndcg>self.best_ndcg:
                     self.best_ndcg = val_ndcg
@@ -110,15 +110,14 @@ class TransformerTrainer():
             loader: the DataLoader containing the set to run the prediction and evaluation.         
 
         Returns:
-            A tuple of (results_dict, logits), containing the evaluation metrics and the
-            values of the predictions for every instance. For example:
-            ({ 'ndcg_cut_10': 0.5,  'recip_rank': 0.4 },  [[0.01, 0.12], [1.2, 0.9]])
+            A tuple of (logits, labels). For example:
+            ([[0.01, 0.12], [1.2, 0.9]])
         """
 
         self.model.eval()
         all_logits = []
         all_labels = []
-        for idx, batch in enumerate(loader):
+        for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
 
@@ -146,15 +145,15 @@ class TransformerTrainer():
                 break
 
         #accumulates per query
-        all_labels = utils.acumulate_list(all_labels, self.num_ns_eval+1)
-        all_logits = utils.acumulate_list(all_logits, self.num_ns_eval+1)
-        return results_analyses_tools.evaluate_and_aggregate(all_logits, all_labels, self.metrics), all_logits
+        all_labels = utils.acumulate_list_multiple_relevant(all_labels)
+        all_logits = utils.acumulate_l1_by_l2(all_logits, all_labels)
+        return all_logits, all_labels
 
     def predict_with_uncertainty(self, loader, foward_passes):
         """
         Uses trained model to make predictions on the loader with uncertainty estimations.
 
-        This methods uses dropout to get the predicted relevance (mean) and uncertainty (variance)
+        This methods uses MC dropout to get the predicted relevance (mean) and uncertainty (variance)
         by enabling dropout at test time and making K foward passes. Use foward_passes=1 for deterministic
         point-estimate relevance predictions.
 
@@ -166,9 +165,9 @@ class TransformerTrainer():
             foward_passes: int indicating the number of foward prediction passes for each instance.
 
         Returns:
-            A tuple of (results_dict, logits, uncertainties), containing the evaluation metrics, the
-            values of the predictions for every instance and the uncertainty (variance). For example:
-            ({ 'ndcg_cut_10': 0.5,  'recip_rank': 0.4 },  [[0.01, 0.12], [1.2, 0.9], [0.05, 0.5]])
+            A triplet of (logits, uncertainties, labels), the values of the predictions for every instance
+            the uncertainty (variance) and the labels. For example:
+            ([[0.01, 0.12], [1.2, 0.9], [0.05, 0.5]], [[1,0], [1,0]])
         """
         def enable_dropout(model):
             for module in model.modules():
@@ -214,34 +213,27 @@ class TransformerTrainer():
                 break
 
         #accumulates per query
-        labels = utils.acumulate_list(labels, self.num_ns_eval+1)
-        logits = utils.acumulate_list(logits, self.num_ns_eval+1)
-        uncertainties = utils.acumulate_list(uncertainties, self.num_ns_eval+1)
-        return results_analyses_tools.evaluate_and_aggregate(logits, labels, self.metrics), logits, uncertainties
+        labels = utils.acumulate_list_multiple_relevant(labels)
+        logits = utils.acumulate_l1_by_l2(logits, labels)
+        uncertainties = utils.acumulate_l1_by_l2(uncertainties, labels)
+        return logits, uncertainties, labels
 
     def test(self):
         """
         Uses trained model to make predictions on the test loader.
 
         Returns:
-            The logits, i.e. predictions,  for the test instances
+            A tuple of (logits, labels)
         """        
         self.num_validation_instances = -1 # no sample on test.
-        res, logits = self.predict(self.test_loader)
-        for metric, v in res.items():
-            logging.info("Test {} : {:4f}".format(metric, v))
-        return logits
+        return self.predict(self.test_loader)
     
     def test_with_dropout(self, foward_passes):
         """
-        Uses trained model to make predictions on the test loader using dropout as bayesian estimation.
+        Uses trained model to make predictions on the test loader using MC dropout as bayesian estimation.
 
         Returns:
-            Tuple with the logits, i.e. average predictions,  for the test instances 
-            and the uncertainties, i.e. variance.
+            A triplet of (logits, uncertainties, labels)
         """        
         self.num_validation_instances = -1 # no sample on test.
-        res, logits, uncertainties = self.predict_with_uncertainty(self.test_loader, foward_passes)
-        for metric, v in res.items():
-            logging.info("Test (w. dropout and {} foward passes) {} : {:4f}".format(foward_passes, metric, v))
-        return logits, uncertainties
+        return self.predict_with_uncertainty(self.test_loader, foward_passes)

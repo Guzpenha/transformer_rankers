@@ -34,7 +34,7 @@ class RandomNegativeSampler():
         self.num_candidates_samples = num_candidates_samples
         self.name = "RandomNS"
         
-    def sample(self, query_str, relevant_doc):
+    def sample(self, query_str, relevant_docs):
         """
         Samples from a list of candidates randomly.
         
@@ -43,7 +43,7 @@ class RandomNegativeSampler():
 
         Args:
             query_str: the str of the query. Not used here.
-            relevant_doc: the str of the relevant document, to avoid sampling it as negative sample.
+            relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
 
         Returns:
             A triplet containing the list of negative samples, 
@@ -55,14 +55,14 @@ class RandomNegativeSampler():
         relevant_doc_rank = -1
         sampled = []
         for i, d in enumerate(sampled_initial):
-            if d == relevant_doc:
+            if d not in relevant_docs:
                 was_relevant_sampled = True
                 relevant_doc_rank = i
             else:
                 sampled.append(d)
 
         while len(sampled) != self.num_candidates_samples:
-            sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d != relevant_doc]
+            sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d not in relevant_docs]
         return sampled, was_relevant_sampled, relevant_doc_rank
 
 if PYSERINI_USABLE:
@@ -126,7 +126,7 @@ if PYSERINI_USABLE:
                             " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
                             format(self.anserini_folder, json_files_path, self.path_index))
 
-        def sample(self, query_str, relevant_doc, max_query_len = 512):
+        def sample(self, query_str, relevant_docs, max_query_len = 512):
             """
             Samples from a list of candidates using BM25.
             
@@ -135,7 +135,7 @@ if PYSERINI_USABLE:
 
             Args:
                 query_str: the str of the query to be used for BM25
-                relevant_doc: the str of the relevant document, to avoid sampling it as negative sample.
+                relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
                 max_query_len: int containing the maximum number of characters to use as input. (Very long queries will raise a maxClauseCount from anserini.)                
 
             Returns:
@@ -151,17 +151,16 @@ if PYSERINI_USABLE:
             relevant_doc_rank = -1
             sampled = []
             for i, d in enumerate(sampled_initial):
-                if d == relevant_doc:
+                if d not in relevant_docs:
                     was_relevant_sampled = True
                     relevant_doc_rank = i
                 else:
                     sampled.append(d)
 
-            while len(sampled) != self.num_candidates_samples: 
-                    # logging.info("Sampling remaining cand for query {} ...".format(query_str[0:100]))
+            while len(sampled) != self.num_candidates_samples:
                     sampled = sampled + \
                         [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
-                            if d != relevant_doc]
+                            if d not in relevant_docs]
             return sampled, was_relevant_sampled, relevant_doc_rank
 
 else:
@@ -205,7 +204,7 @@ class SentenceBERTNegativeSampler():
 
         self.name = "SentenceBERTNS_"+self.pre_trained_model
         self.sample_data = sample_data
-        self.embeddings_file = embeddings_file        
+        self.embeddings_file = embeddings_file
 
         self._calculate_sentence_embeddings()
         self._build_faiss_index()
@@ -236,7 +235,7 @@ class SentenceBERTNegativeSampler():
         logging.info("There is a total of {} candidate embeddings.".format(len(self.candidate_embeddings)))
         logging.info("Faiss index has a total of {} candidates".format(self.index.ntotal))
 
-    def sample(self, query_str, relevant_doc):
+    def sample(self, query_str, relevant_docs):
         """
         Samples from a list of candidates using dot product sentenceBERT similarity.
         
@@ -245,7 +244,7 @@ class SentenceBERTNegativeSampler():
 
         Args:
             query_str: the str of the query to be used for the dense similarity matching.
-            relevant_doc: the str of the relevant document, to avoid sampling it as negative sample.
+            relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
             
         Returns:
             A triplet containing the list of negative samples, 
@@ -261,7 +260,7 @@ class SentenceBERTNegativeSampler():
         relevant_doc_rank = -1
         sampled = []
         for i, d in enumerate(sampled_initial):
-            if d == relevant_doc:
+            if d not in relevant_docs:
                 was_relevant_sampled = True
                 relevant_doc_rank = i
             else:
@@ -270,5 +269,5 @@ class SentenceBERTNegativeSampler():
         while len(sampled) != self.num_candidates_samples: 
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
-                        if d != relevant_doc]
+                        if d not in relevant_docs]
         return sampled, was_relevant_sampled, relevant_doc_rank

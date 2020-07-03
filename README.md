@@ -15,6 +15,7 @@ The following example uses BERT for the task of conversation response ranking us
 from transformer_rankers.trainers import transformer_trainer
 from transformer_rankers.datasets import dataset, preprocess_crr
 from transformer_rankers.negative_samplers import negative_sampling 
+from transformer_rankers.eval import results_analyses_tools
 
 #Read dataset
 data_folder = "data"
@@ -59,7 +60,12 @@ trainer.fit()
 
 #Predict for test (in our example the validation set)
 logging.info("Predicting")
-preds = trainer.test()
+preds, labels = trainer.test()
+res = results_analyses_tools.\
+    evaluate_and_aggregate(preds, labels, ['ndcg_cut_10'])
+
+for metric, v in res.items():
+    logging.info("Test {} : {:4f}".format(metric, v))
 ```
 
 The output will look like this:
@@ -68,16 +74,14 @@ The output will look like this:
     2020-06-23 11:19:44,522 [INFO] Epoch 1 val nDCG@10 
     2020-06-23 11:19:44,522 [INFO] Predicting
     2020-06-23 11:19:44,523 [INFO] Starting evaluation on test.
-    2020-06-23 11:20:03,678 [INFO] Test recip_rank : 0.1345
     2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10 : 0.3236
-    2020-06-23 11:20:03,746 [INFO] Result: 0.3236
 
 
 ## Code Organization
 
 ### datasets
 
-Stores processors for specific datasets as well as code to generate pytorch datasets To download some datasets use *scripts/download_*_data.sh*. Implemented processors: 
+Stores processors for specific datasets as well as code to generate pytorch datasets To download the datasets use *scripts/download_\<task>_data.sh*. Implemented processors: 
 - **conversation response ranking**: [MANtIS](https://guzpenha.github.io/MANtIS/), [MSDialog](https://ciir.cs.umass.edu/downloads/msdialog/) and [Ubuntu v2](https://github.com/dstc8-track2/NOESIS-II/) from DSTC8.
 - **similar question retrieval**: [Quora Question Pairs](https://www.kaggle.com/c/quora-question-pairs) and [LinkSO](https://sites.google.com/view/linkso)
 
@@ -122,7 +126,7 @@ Validation set results, R<sub>10</sub>@1 values when using BM25 negative sampler
 
 <!-- ### Similar question ranking
 
-|             | Quora | LinkSO | 
+|             | Quora | LinkSO |
 |-------------|--------|----------|
 | BERT-ranker |   |     |
 | T5-ranker |    |    | -->

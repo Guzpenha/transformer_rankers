@@ -1,6 +1,7 @@
 from transformer_rankers.trainers import transformer_trainer
 from transformer_rankers.datasets import dataset, preprocess_crr, preprocess_sqr
 from transformer_rankers.negative_samplers import negative_sampling 
+from transformer_rankers.eval import results_analyses_tools
 
 from transformers import BertTokenizer, BertForSequenceClassification
 from sacred.observers import FileStorageObserver
@@ -89,11 +90,18 @@ def run_experiment(args):
 
     #Predict for test
     logging.info("Predicting")
-    preds = trainer.test()
+    preds, labels = trainer.test()
+    res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
+    for metric, v in res.items():
+        logging.info("Test {} : {:4f}".format(metric, v))
 
-    #Saving predictions to a file
-    preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(len(preds[0]))])
+    #Saving predictions and labels to a file
+    max_preds_column = max([len(l) for l in preds])
+    preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
     preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions.csv", index=False)
+
+    labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
+    labels_df.to_csv(args.output_dir+"/"+args.run_id+"/labels.csv", index=False)
 
     #Saving model to a file
     if args.save_model:
@@ -102,12 +110,19 @@ def run_experiment(args):
     #In case we want to get uncertainty estimations at prediction time
     if args.predict_with_uncertainty_estimation:  
         logging.info("Predicting with dropout.")      
-        preds, uncertainties = trainer.test_with_dropout(args.num_foward_prediction_passes)
+        preds, uncertainties, labels = trainer.test_with_dropout(args.num_foward_prediction_passes)
+        res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
+        for metric, v in res.items():
+            logging.info("Test (w. dropout and {} foward passes) {} : {:4f}".format(args.num_foward_prediction_passes, metric, v))
         
-        preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(len(preds[0]))])
+        max_preds_column = max([len(l) for l in preds])
+        preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
         preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout.csv", index=False)
+
+        labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
+        labels_df.to_csv(args.output_dir+"/"+args.run_id+"/labels.csv", index=False)
         
-        uncertainties_df = pd.DataFrame(uncertainties, columns=["uncertainty_"+str(i) for i in range(len(preds[0]))])
+        uncertainties_df = pd.DataFrame(uncertainties, columns=["uncertainty_"+str(i) for i in range(max_preds_column)])
         uncertainties_df.to_csv(args.output_dir+"/"+args.run_id+"/uncertainties.csv", index=False)
 
     return trainer.best_ndcg

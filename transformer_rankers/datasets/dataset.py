@@ -40,12 +40,12 @@ class T2TDataCollator(DataCollator):
 
 class AbstractDataloader(metaclass=ABCMeta):
     """
-        Abstract class for the DataLoaders
+        Abstract class for the DataLoaders. The class expects only relevant query-doc combinations in the dfs.
 
         Args:
-            train_df: train pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
-            val_df: validation pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
-            test_df: test pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
+            train_df: train pandas DataFrame containing columns the first containing the 'query' the second one relevant 'document'.
+            val_df: validation pandas DataFrame containing columns the first containing the 'query' the second one relevant 'document'.
+            test_df: test pandas DataFrame containing columns the first containing the 'query' the second one relevant 'document'.
             tokenizer: transformer tokenizer.
             negative_sampler_train: negative sampling class for the training set. Has .sample() function.
             negative_sampler_val: negative sampling class for the validation/test set. Has .sample() function.
@@ -155,7 +155,15 @@ class QueryDocumentDataset(data.Dataset):
         self.sample_data = sample_data
         self.cache_path = cache_path
 
+        self._group_relevant_documents()
         self._cache_instances()
+
+    def _group_relevant_documents(self):
+        """
+        Since some datasets have multiple relevants per query, we group them to make NS easier.
+        """
+        query_col = self.data.columns[0]
+        self.data = self.data.groupby(query_col).agg(list).reset_index()
 
     def _cache_instances(self):
         """
@@ -176,18 +184,26 @@ class QueryDocumentDataset(data.Dataset):
                 self.instances = pickle.load(f)
         else:            
             logging.info("Generating instances with signature {}".format(signature))
+
+            #Creating labels (currently there is support only for binary relevance)
             if self.task_type == "classification":
-                labels = [[1] + ([0] * (self.negative_sampler.num_candidates_samples))] * self.data.shape[0]
+                relevant_label = 1
+                not_relevant_label = 0
             elif self.task_type == "generation":
-                labels = [["relevant </s>"] + (["not_relevant  </s>"] * (self.negative_sampler.num_candidates_samples))] * self.data.shape[0]
-            labels = functools.reduce(operator.iconcat, labels, []) #flattening
+                relevant_label = "relevant </s>"
+                not_relevant_label = "not_relevant  </s>"
+            labels = []
+            for r in self.data.itertuples(index=False):
+                labels+=([relevant_label] * len(r[1])) #relevant documents are grouped at the second column.
+                labels+=([not_relevant_label] * (self.negative_sampler.num_candidates_samples)) # each query has N negative samples.
 
             examples = []
             for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
                 query = row[0]
-                relevant_document = row[1]
-                examples.append((query, relevant_document))                
-                ns_candidates, _, _ = self.negative_sampler.sample(query, relevant_document)
+                relevant_documents = row[1]
+                for relevant_document in relevant_documents:
+                    examples.append((query, relevant_document))
+                ns_candidates, _, _ = self.negative_sampler.sample(query, relevant_documents)                
                 for ns in ns_candidates:
                     examples.append((query, ns))
 
