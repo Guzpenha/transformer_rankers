@@ -71,19 +71,23 @@ for metric, v in res.items():
 The output will look like this:
 
     [...]
-    2020-06-23 11:19:44,522 [INFO] Epoch 1 val nDCG@10 
+    2020-06-23 11:19:44,522 [INFO] Epoch 1 val nDCG@10: 0.245
     2020-06-23 11:19:44,522 [INFO] Predicting
     2020-06-23 11:19:44,523 [INFO] Starting evaluation on test.
-    2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10 : 0.3236
+    2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10: 0.3236
 
 
 ## Code Organization
 
 ### datasets
 
-Stores processors for specific datasets as well as code to generate pytorch datasets To download the datasets use *scripts/download_\<task>_data.sh*. Implemented processors: 
+Stores processors for specific datasets as well as code to generate pytorch datasets To download the datasets use *scripts/download_\<task>_data.sh*. Currently implemented processors: 
+
 - **conversation response ranking**: [MANtIS](https://guzpenha.github.io/MANtIS/), [MSDialog](https://ciir.cs.umass.edu/downloads/msdialog/) and [Ubuntu v2](https://github.com/dstc8-track2/NOESIS-II/) from DSTC8.
 - **similar question retrieval**: [Quora Question Pairs](https://www.kaggle.com/c/quora-question-pairs) and [LinkSO](https://sites.google.com/view/linkso)
+- **passage retrieval**: [TREC 2020 Passage Ranking](https://microsoft.github.io/TREC-2020-Deep-Learning/).
+
+Note that since we choose the negative sampling on the go, we do not read the negative samples from the datasets, only the relevant query-document combinations.
 
 ### negative_samplers
 Currently there is support to query for negative samples using the following approaches:
@@ -114,8 +118,8 @@ Inspired by [*"Dropout as a Bayesian Approximation: Representing Model Uncertain
 average_logits, uncertainties = trainer.test_with_dropout(num_foward_prediction_passes=10)
 ``` -->
 
-## Experimental Results Examples
-Validation set results, R<sub>10</sub>@1 values when using BM25 negative sampler (1 negative for train).
+## Experimental Results Examples (10 negative samples)
+Validation set results, R<sub>10</sub>@1 values when using BM25 negative sampler (1 negative sample for train).
 
 ### Conversation response ranking
 
@@ -133,7 +137,7 @@ Validation set results, R<sub>10</sub>@1 values when using BM25 negative sampler
 
 <!-- 
 Passage Retrieval
-|             | ANTIQUE | MSMarco |
+|             | MSMarco | ANTIQUE |
 |-------------|--------|----------|
 | BERT-ranker | -  |  -  |
 | T5-ranker |  - |  - | -->
