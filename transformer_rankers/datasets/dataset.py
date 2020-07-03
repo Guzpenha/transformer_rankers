@@ -43,9 +43,9 @@ class AbstractDataloader(metaclass=ABCMeta):
         Abstract class for the DataLoaders
 
         Args:
-            train_df: train pandas DataFrame containing columns ["context", "relevant_response"].
-            val_df: validation pandas DataFrame containing columns ["context", "relevant_response"].
-            test_df: test pandas DataFrame containing columns ["context", "relevant_response"].
+            train_df: train pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
+            val_df: validation pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
+            test_df: test pandas DataFrame containing columns the first containing the 'query' the second the relevant 'document'.
             tokenizer: transformer tokenizer.
             negative_sampler_train: negative sampling class for the training set. Has .sample() function.
             negative_sampler_val: negative sampling class for the validation/test set. Has .sample() function.
@@ -84,7 +84,7 @@ class AbstractDataloader(metaclass=ABCMeta):
     def get_pytorch_dataloaders(self):
         pass
 
-class CRRDataLoader(AbstractDataloader):
+class QueryDocumentDataLoader(AbstractDataloader):
     def __init__(self, train_df, val_df, test_df, tokenizer,
                  negative_sampler_train, negative_sampler_val, task_type,
                  train_batch_size, val_batch_size, max_seq_len, sample_data,
@@ -93,11 +93,6 @@ class CRRDataLoader(AbstractDataloader):
                  negative_sampler_train, negative_sampler_val, task_type,
                  train_batch_size, val_batch_size, max_seq_len, sample_data,
                  cache_path)
-
-        special_tokens_dict = {
-            'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]']
-        }
-        self.tokenizer.add_special_tokens(special_tokens_dict)
 
         if self.task_type == "classification":
             self.data_collator = DefaultDataCollator()
@@ -115,7 +110,7 @@ class CRRDataLoader(AbstractDataloader):
         return train_loader, val_loader, test_loader
 
     def _get_train_loader(self):
-        dataset = CRRDataset(self.train_df, self.tokenizer,'train',
+        dataset = QueryDocumentDataset(self.train_df, self.tokenizer,'train',
                              self.negative_sampler_train, self.task_type,
                              self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
@@ -125,7 +120,7 @@ class CRRDataLoader(AbstractDataloader):
         return dataloader
 
     def _get_val_loader(self):
-        dataset = CRRDataset(self.val_df, self.tokenizer, 'val', 
+        dataset = QueryDocumentDataset(self.val_df, self.tokenizer, 'val', 
                             self.negative_sampler_val, self.task_type,
                              self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
@@ -135,7 +130,7 @@ class CRRDataLoader(AbstractDataloader):
         return dataloader
 
     def _get_test_loader(self):
-        dataset = CRRDataset(self.test_df, self.tokenizer, 'test', 
+        dataset = QueryDocumentDataset(self.test_df, self.tokenizer, 'test', 
                              self.negative_sampler_val, self.task_type,
                              self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
@@ -144,7 +139,7 @@ class CRRDataLoader(AbstractDataloader):
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
-class CRRDataset(data.Dataset):
+class QueryDocumentDataset(data.Dataset):
     def __init__(self, data, tokenizer, data_partition, 
                 negative_sampler, task_type, max_seq_len, sample_data,
                 cache_path):
@@ -189,12 +184,12 @@ class CRRDataset(data.Dataset):
 
             examples = []
             for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
-                context = row[0]
-                relevant_response = row[1]
-                examples.append((context, relevant_response))                
-                ns_candidates, _, _ = self.negative_sampler.sample(context, relevant_response)
+                query = row[0]
+                relevant_document = row[1]
+                examples.append((query, relevant_document))                
+                ns_candidates, _, _ = self.negative_sampler.sample(query, relevant_document)
                 for ns in ns_candidates:
-                    examples.append((context, ns))
+                    examples.append((query, ns))
 
             logging.info("Encoding examples using tokenizer.batch_encode_plus().")
             batch_encoding = self.tokenizer.batch_encode_plus(examples, 
@@ -222,8 +217,8 @@ class CRRDataset(data.Dataset):
                 self.instances.append(feature)            
 
             for idx in range(3):
-                logging.info("Set {} Instance {} context \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
-                logging.info("Set {} Instance {} response \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
+                logging.info("Set {} Instance {} query \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
+                logging.info("Set {} Instance {} document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
                 logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)

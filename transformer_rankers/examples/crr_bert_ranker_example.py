@@ -1,6 +1,5 @@
 from transformer_rankers.trainers import transformer_trainer
-from transformer_rankers.datasets import crr_dataset
-from transformer_rankers.datasets import preprocess_crr 
+from transformer_rankers.datasets import dataset, preprocess_crr, preprocess_sqr
 from transformer_rankers.negative_samplers import negative_sampling 
 
 from transformers import BertTokenizer, BertForSequenceClassification
@@ -28,33 +27,43 @@ logging.basicConfig(
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
 
+    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     #Load datasets
-    add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
-    train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
-    valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
+    ## Conversation Response Ranking
+    if args.task in ["mantis", "msdialog", "ubuntu_dstc8"]: 
+        add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
+        train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
+        valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
+        special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }
+        tokenizer.add_special_tokens(special_tokens_dict)
+    ## Similar Question Retrieval
+    elif args.task in ["qqp", "linkso"]:
+        if args.sample_data == -1: args.sample_data=None            
+        train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", nrows=args.sample_data)
+        valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t", nrows=args.sample_data)
 
     #Choose the negative candidate sampler
-    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
+    document_col = train.columns[1]
     if args.train_negative_sampler == 'random':
-        ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), args.num_ns_train)
+        ns_train = negative_sampling.RandomNegativeSampler(list(train[document_col].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
-        ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values), args.num_ns_train, 
+        ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train[document_col].values), args.num_ns_train, 
                     args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
     elif args.train_negative_sampler == 'sentenceBERT':
-        ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values), args.num_ns_train, 
+        ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train[document_col].values), args.num_ns_train, 
                     args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)        
 
     if args.test_negative_sampler == 'random':
-        ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + list(train["response"].values), args.num_ns_eval)
+        ns_val = negative_sampling.RandomNegativeSampler(list(valid[document_col].values) + list(train[document_col].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
-        ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid["response"].values) + list(train["response"].values),
+        ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
                     args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
-        ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid["response"].values) + list(train["response"].values),
+        ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid[document_col].values) + list(train[document_col].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
 
     #Create the loaders for the datasets, with the respective negative samplers
-    dataloader = crr_dataset.CRRDataLoader(train, valid, valid,
+    dataloader = dataset.QueryDocumentDataLoader(train, valid, valid,
                                 tokenizer, ns_train, ns_val,
                                 'classification', args.train_batch_size, 
                                 args.val_batch_size, args.max_seq_len, 
