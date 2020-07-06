@@ -55,7 +55,7 @@ class RandomNegativeSampler():
         relevant_doc_rank = -1
         sampled = []
         for i, d in enumerate(sampled_initial):
-            if d not in relevant_docs:
+            if d in relevant_docs:
                 was_relevant_sampled = True
                 relevant_doc_rank = i
             else:
@@ -151,7 +151,7 @@ if PYSERINI_USABLE:
             relevant_doc_rank = -1
             sampled = []
             for i, d in enumerate(sampled_initial):
-                if d not in relevant_docs:
+                if d in relevant_docs:
                     was_relevant_sampled = True
                     relevant_doc_rank = i
                 else:
@@ -260,7 +260,7 @@ class SentenceBERTNegativeSampler():
         relevant_doc_rank = -1
         sampled = []
         for i, d in enumerate(sampled_initial):
-            if d not in relevant_docs:
+            if d in relevant_docs:
                 was_relevant_sampled = True
                 relevant_doc_rank = i
             else:
