@@ -80,19 +80,26 @@ if PYSERINI_USABLE:
             path_index: str containing the path to create/load the anserini index.
             sample_data: int indicating amount of candidates in the index (-1 if all)
             anserini_folder: str containing the bin <anserini_folder>/target/appassembler/bin/IndexCollection
+            set_rm3: boolean indicating whether to use rm3 or not.
+            seed: int with the random seed
         """
-        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, set_rm3=False, seed=42):
             random.seed(seed)
             self.candidates = candidates
             self.num_candidates_samples = num_candidates_samples
             self.path_index  = path_index
-            self.name = "BM25NS"
+            if set_rm3:
+                self.name = "BM25RM3NS"
+            else:
+                self.name = "BM25NS"
             self.sample_data = sample_data
             self.anserini_folder = anserini_folder
             self._create_index()
 
             self.searcher = SimpleSearcher(self.path_index+"anserini_index")
             self.searcher.set_bm25(0.9, 0.4)
+            if set_rm3:
+                self.searcher.set_rm3()
 
         def _generate_anserini_json_collection(self):
             """
@@ -166,11 +173,14 @@ if PYSERINI_USABLE:
 else:
      class BM25NegativeSamplerPyserini():
 
-        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, set_rm3=False, seed=42):
             self.candidates = candidates
             self.num_candidates_samples = num_candidates_samples
             self.path_index  = path_index
-            self.name = "BM25NS"
+            if set_rm3:
+                self.name = "BM25RM3NS"
+            else:
+                self.name = "BM25NS"
             self.sample_data = sample_data
             self.anserini_folder = anserini_folder
         

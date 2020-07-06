@@ -44,7 +44,7 @@ def main():
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")        
     ns_valid_random = negative_sampling.RandomNegativeSampler(list(train["response"].values)+list(valid["response"].values), args.num_ns_train)    
     ns_valid_bm25 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values)+list(valid["response"].values), args.num_ns_train,
-                args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
+                args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder, set_rm3=True)
     ns_valid_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values)+list(valid["response"].values), args.num_ns_train, 
                 args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, 
                 args.data_folder+args.task+"/bert-base-cased_{}".format(args.task)) #pre-trained embedding
