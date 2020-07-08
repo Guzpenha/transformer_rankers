@@ -165,9 +165,8 @@ class TransformerTrainer():
             foward_passes: int indicating the number of foward prediction passes for each instance.
 
         Returns:
-            A triplet of (logits, uncertainties, labels), the values of the predictions for every instance
-            the uncertainty (variance) and the labels. For example:
-            ([[0.01, 0.12], [1.2, 0.9], [0.05, 0.5]], [[1,0], [1,0]])
+            A quadruplet(?) of (logits, uncertainties, labels, foward_passes_logits), the values of the predictions (mean)
+            for every instance, the uncertainty (variance), the labels and all predictions obtained during f_passes.
         """
         def enable_dropout(model):
             for module in model.modules():
@@ -184,6 +183,7 @@ class TransformerTrainer():
         logits = []
         labels = []
         uncertainties = []
+        foward_passes_logits = [[] for i in range(foward_passes)] # foward_passes X queries        
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
@@ -192,20 +192,22 @@ class TransformerTrainer():
                 if self.task_type == "classification":                    
                     labels+= batch["labels"].tolist()
                     fwrd_predictions = []
-                    for f_pass in range(foward_passes):
+                    for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, batch_logits = outputs[:2]
                         fwrd_predictions.append(batch_logits[:, 1].tolist())
+                        foward_passes_logits[i]+=batch_logits[:, 1].tolist()
                 elif self.task_type == "generation":
                     labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
                     fwrd_predictions = []
-                    for f_pass in range(foward_passes):
+                    for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, token_logits = outputs[:2]
                         pred_relevant = token_logits[0:, 0 , relevant_token_id]
                         pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
                         pred = pred_relevant-pred_not_relevant
                         fwrd_predictions.append(pred.tolist())
+                        foward_passes_logits[i]+=pred.tolist()
 
                 logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
                 uncertainties += np.array(fwrd_predictions).var(axis=0).tolist()
@@ -216,7 +218,10 @@ class TransformerTrainer():
         labels = utils.acumulate_list_multiple_relevant(labels)
         logits = utils.acumulate_l1_by_l2(logits, labels)
         uncertainties = utils.acumulate_l1_by_l2(uncertainties, labels)
-        return logits, uncertainties, labels
+        for i, foward_logits in enumerate(foward_passes_logits):
+            foward_passes_logits[i] = utils.acumulate_l1_by_l2(foward_logits, labels)
+
+        return logits, uncertainties, labels, foward_passes_logits
 
     def test(self):
         """

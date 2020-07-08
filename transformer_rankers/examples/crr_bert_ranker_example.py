@@ -110,7 +110,7 @@ def run_experiment(args):
     #In case we want to get uncertainty estimations at prediction time
     if args.predict_with_uncertainty_estimation:  
         logging.info("Predicting with dropout.")      
-        preds, uncertainties, labels = trainer.test_with_dropout(args.num_foward_prediction_passes)
+        preds, uncertainties, labels, foward_passes_preds = trainer.test_with_dropout(args.num_foward_prediction_passes)
         res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
         for metric, v in res.items():
             logging.info("Test (w. dropout and {} foward passes) {} : {:4f}".format(args.num_foward_prediction_passes, metric, v))
@@ -118,6 +118,10 @@ def run_experiment(args):
         max_preds_column = max([len(l) for l in preds])
         preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
         preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout.csv", index=False)
+
+        for i, f_pass_preds in enumerate(foward_passes_preds):
+            preds_df = pd.DataFrame(f_pass_preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
+            preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout_f_pass_{}.csv".format(i), index=False)
 
         labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
         labels_df.to_csv(args.output_dir+"/"+args.run_id+"/labels.csv", index=False)
