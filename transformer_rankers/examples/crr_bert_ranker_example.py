@@ -170,7 +170,7 @@ def main():
     parser.add_argument("--test_negative_sampler", default="random", type=str, required=False,
                         help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
     parser.add_argument("--bert_sentence_model", default="bert-base-nli-stsb-mean-tokens", type=str, required=False,
-                        help="Pre-trained sentenceBERT model.")                        
+                        help="Pre-trained sentenceBERT model.")
     parser.add_argument("--anserini_folder", default="", type=str, required=False,
                         help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 
