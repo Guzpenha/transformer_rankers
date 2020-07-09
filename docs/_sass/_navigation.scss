@@ -1,0 +1,219 @@
+/* ==========================================================================
+   NAVIGATION
+   ========================================================================== */
+
+/*
+   Breadcrumb navigation links
+   ========================================================================== */
+
+.breadcrumbs {
+  @include container;
+  @include clearfix;
+  margin-top: 0;
+  display: none;
+  margin-bottom: 0;
+  padding-left: 2em;
+  padding-right: 2em;
+  -webkit-animation: intro 0.3s both;
+          animation: intro 0.3s both;
+  -webkit-animation-delay: 0.30s;
+          animation-delay: 0.30s;
+
+  @include breakpoint($large) {
+    padding-left: 1em;
+    padding-right: 1em;
+  }
+
+  @include breakpoint($x-large) {
+    max-width: $x-large;
+  }
+
+  ol {
+    padding: 0;
+    list-style: none;
+    font-size: $type-size-6;
+
+    @include breakpoint($large) {
+      @include span(10 of 12 last);
+    }
+
+    @include breakpoint($x-large) {
+      @include prefix(0.5 of 12);
+    }
+  }
+
+  li {
+    display: inline;
+  }
+
+  .current {
+    font-weight: bold;
+  }
+}
+
+
+/*
+   Pagination navigation links
+   ========================================================================== */
+
+.pagination {
+  @include full();
+  @include clearfix();
+  margin-top: 1em;
+  padding-top: 1em;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+  }
+
+  li {
+    display: block;
+    float: left;
+    margin-left: -1px;
+
+    a {
+      display: block;
+      margin-bottom: 0.25em;
+      padding: 0.5em 1em;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+      text-decoration: none;
+      border: 1px solid $border-color;
+      border-radius: 0;
+
+      &:hover {
+        color: $link-color-hover;
+      }
+
+      &.current {
+        color: #fff;
+        background: $theme-color;
+      }
+
+      &.disabled {
+        color: mix(#fff, $gray, 75%);
+        pointer-events: none;
+        cursor: not-allowed;
+      }
+    }
+
+    &:first-child {
+      margin-left: 0;
+
+      a {
+        border-top-left-radius: $border-radius;
+        border-bottom-left-radius: $border-radius;
+      }
+    }
+
+    &:last-child {
+      a {
+        border-top-right-radius: $border-radius;
+        border-bottom-right-radius: $border-radius;
+      }
+    }
+  }
+}
+
+.page__content + .pagination,
+.page__meta + .pagination,
+.page__share + .pagination,
+.page__comments + .pagination {
+  margin-top: 2em;
+  padding-top: 0;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
+}
+
+
+/*
+   Header navigation
+   ========================================================================== */
+
+
+.topnav {
+  -webkit-transform: translate3d(0, 0 , 0);
+          transform: translate3d(0, 0 , 0);
+
+  @include clearfix();
+  margin: auto;
+  margin-bottom: 4em;
+  max-width: $max-width;
+
+  h2, h3, h4, h5, h6 {
+    margin-bottom: 0;
+  }
+
+  p, li {
+    font-size: 0.8rem; // prevent fonts from getting smaller with each layer
+    line-height: 1.5;
+  }
+}
+
+.topnav__avatar {
+  display: table-cell;
+  vertical-align: top;
+  width: 7em;
+  height: 7em; 
+  
+  @include breakpoint(max-width $small) {
+    @include full();
+    height: inherit;
+    margin-bottom: 1em;
+  }
+
+  img {
+    height: auto;
+    @include breakpoint(max-width $small) {
+      width: 8em;
+      display: block;
+      margin: 0 auto;
+    }
+    @include breakpoint($large) {
+      padding: 5px;
+    }
+  }
+}
+
+.topnav__content {
+  display: table-cell;
+  vertical-align: top;
+  padding-left: 15px;
+  padding-right: 25px;
+  line-height: 1;
+
+  @include breakpoint(max-width $small) {
+    @include full();
+    h3, p, ul, li { text-align: center; }
+    ul.collapsed li { text-align: left; }
+  }
+  @include breakpoint($large) {
+    padding-top: 1em;
+  }
+}
+
+.site__name {
+  margin: 0;
+  font-family: $global-font-family;
+  font-size: 1.8em;
+}
+
+.site__bio {
+  margin: 0;
+  font-size: 70%;
+}
+
+.menu-item {
+  display: inline-block;
+  a {
+    color: $text-color;
+  }
+}
+
+nav .links {
+  padding: 0;
+  font-size: $type-size-3;
+}

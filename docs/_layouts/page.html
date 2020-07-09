@@ -1,0 +1,17 @@
+---
+layout: default
+---
+
+<div id="main" role="main">
+  {% include topnav.html %}
+
+  <div class="page">
+      {% if page.title %}
+        <h1 class="page__title">{{ page.title }}</h1>
+      {% endif %}
+      {% if page.subtitle %}
+        <p class="page__subtitle">{{ page.subtitle }}</p>
+      {% endif %}
+    {{ content }}
+  </div>
+</div>

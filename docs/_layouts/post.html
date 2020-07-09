@@ -1,0 +1,48 @@
+---
+layout: default
+---
+
+{% include breadcrumbs.html %} 
+<div id="main" role="main">
+  {% include topnav.html %}
+  <article class="post" itemscope itemtype="http://schema.org/CreativeWork">
+    {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+    {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+    {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date: "%B %d, %Y" }}">{% endif %}
+    {% if page.modified %}<meta itemprop="dateModified" content="{{ page.modified | date: "%B %d, %Y" }}">{% endif %}
+
+    <div class="post__inner-wrap">
+      <header>
+        {% if page.title %}<h1 class="post__title" itemprop="headline">{{ page.title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>{% endif %}
+        
+        {% if page.date %}
+        <p class="post__meta"> <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%B %d, %Y" }} </time></p>
+        {% endif %}
+        
+        {% if page.feature-img %}
+    <img class="feature-image" src={{ page.feature-img }} alt="Featured Image"/>
+  {% endif %}
+        
+        <span>[
+  {% for tag in page.tags %}
+    {% capture tag_name %}{{ tag }}{% endcapture %}
+    <a href="/tag/{{ tag_name }}"><code class="highligher-rouge"><nobr>{{ tag_name }}</nobr></code>&nbsp;</a>
+  {% endfor %}
+]</span>
+      </header>
+      <section class="post__content" itemprop="text">
+        {{ content }}
+        
+        {% if page.share %}{% include social-share.html %}{% endif %}
+      
+      </section>
+
+    </div>
+
+    {% if site.comments and page.comments != false %}
+      {% include comments.html %}
+    {% endif %}
+
+
+  </article>
+</div>

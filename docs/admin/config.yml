@@ -1,0 +1,40 @@
+backend:
+  name: git-gateway
+  branch: master
+
+publish_mode: editorial_workflow
+
+media_folder: "images" # Media files will be stored in the repo under images
+public_folder: "/images" # The src attribute for uploaded media will begin with /images
+
+collections:
+  - name: "post"
+    label: "Post"
+    folder: "_posts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "Type", name: "type", widget: "hidden", default: "post"}
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "SEO Title", name: "seotitle", widget: "string"}
+      - {label: "Author", name: "author", widget: "string"}
+      - {label: "Description", name: "description", widget: "string", required: false}
+      - {label: "OG Image", name: "headerimage", widget: "string", required: false}
+      - {label: "Updated Date", name: "updated", widget: "string", required: false}
+      - {label: "Body", name: "body", widget: "markdown", required: false}
+      - {label: "Tags", name: "tags", widget: "string"}
+      - {label: "URL", name: "url", widget: "string"}
+
+  - name: "page"
+    label: "Page"
+    folder: "_pages"
+    create: true
+    slug: ".md"
+    fields:
+      - {label: "Type", name: "type", widget: "hidden", default: "page"}
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "SEO Title", name: "seotitle", widget: "string"}
+      - {label: "Description", name: "description", widget: "string", required: false}
+      - {label: "URL", name: "url", widget: "string"}
+      - {label: "Body", name: "body", widget: "markdown", required: false}
+

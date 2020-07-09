@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Variables
+   ========================================================================== */
+
+/*
+   Typography
+   ========================================================================== */
+
+$system                     : -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+$global-font-family         : $system !default;
+$header-font-family         : $system !default;
+$fancy-font-family          : $system !default;
+$caption-font-family        : $system !default;
+$monospace                  : Monaco, Consolas, "Lucida Console", monospace !default;
+
+/* type scale */
+$type-size-1                : 2.441em !default;  // ~39.056px
+$type-size-2                : 1.953em !default;  // ~31.248px
+$type-size-3                : 1.363em !default;  // ~25.008px
+$type-size-4                : 1.15em !default;   // ~20px
+$type-size-5                : 1.125em !default;  // ~18px
+$type-size-6                : 0.75em !default;   // ~12px
+$type-size-7                : 0.6875em !default; // ~11px
+$type-size-8                : 0.625em !default;  // ~10px
+
+
+/*
+   Colors
+   ========================================================================== */
+
+$green                      : mix(#000, #c0392b, 15%);
+$theme-color                : $green;
+$gray                       : #7a8288 !default;
+
+$body-color                 : #fff !default;
+$background-color           : #fff !default;
+$code-background-color      : mix(#fff, $gray, 90%) !default;
+$blockquote-background-color: mix(#fff, $gray, 90%) !default;
+$text-color                 : #404040 !default;
+$border-color               : #b2b2b2 !default;
+
+
+/* links */
+$link-color                 : $theme-color !default;
+$link-color-hover           : mix(#fff, $link-color, 40%) !default; 
+$link-color-visited         : mix(#000, $link-color, 25%) !default;
+$entry-link-color           : $text-color !default;
+$entry-link-color-hover     : $theme-color !default;
+
+
+/*
+   Breakpoints
+   ========================================================================== */
+
+$x-small                    : 320px !default;
+$small                      : 600px !default;
+$medium                     : 768px !default;
+$medium-wide                : 900px !default;
+$large                      : 1024px !default;
+$x-large                    : 1280px !default;
+$x-x-large                  : 1440px !default;
+
+$max-width                  : 625px !default;
+
+
+/*
+   Other
+   ========================================================================== */
+
+$border-radius              : 5px !default;
+$global-transition          : all 0.2s ease-in-out !default;

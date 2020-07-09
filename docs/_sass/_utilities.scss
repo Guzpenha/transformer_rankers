@@ -1,0 +1,67 @@
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+/*
+   Type
+   ========================================================================== */
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-justify {
+  text-align: justify;
+}
+
+.text-nowrap {
+  white-space: nowrap;
+}
+
+
+/*
+   Images
+   ========================================================================== */
+
+/* image align left */
+
+.align-left {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+
+  @include breakpoint($small) {
+    float: left;
+    margin-right: 1em;
+  }
+}
+
+/* image align right */
+
+.align-right {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+
+  @include breakpoint($small) {
+    float: right;
+    margin-left: 1em;
+  }
+}
+
+/* image align center */
+
+.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+

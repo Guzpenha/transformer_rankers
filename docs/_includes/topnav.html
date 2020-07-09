@@ -1,0 +1,47 @@
+<div class="topnav">
+  {% if site.avatar %}
+  <div class="topnav__avatar">
+      {% if site.avatar contains "://" %}
+      <a href="{{ site.url }}"><img src="{{ site.avatar }}" alt="{{ site.avatar }}"></a>
+      {% else %}
+        <img src="{{ site.avatar | absolute_url }}" alt="{{ site.name }}">
+      {% endif %}
+    </div> 
+  {% endif %}
+
+  <div class="topnav__content">
+    <h3 class="site__name"><a href="/" rel="permalink">{{ site.title }}</a></h3>
+    {% if site.description %}
+      <p class="site__bio">
+        {{ site.description }}
+      </p>
+    {% endif %}
+    
+    <nav>
+      <ul id="navigation" class="links slimmenu">
+        {% for link in site.data.navigation.main %}
+          {% if link.url contains 'http' %}
+            {% assign domain = '' %}
+          {% else %}
+            {% assign domain = site.url | append: site.baseurl %}
+          {% endif %}
+          <li class="menu-item">
+            <a href="{{ domain }}{{ link.url }}">{{ link.title }}</a>
+            {% if link.children %}
+              <ul>
+                {% for child in link.children %}
+                  {% if child.url contains 'http' %}
+                    {% assign domain = '' %}
+                  {% else %}
+                    {% assign domain = site.url | append: site.baseurl %}
+                  {% endif %}
+                  <li><a href="{{domain }}{{child.url}}">{{ child.title }}</a></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+.page__footer {
+  @include full();
+  @include clearfix;
+  /* sticky footer fix start */
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  clear: both;
+  height: auto;
+  /* sticky footer fix end */
+  margin-top: 3em;
+  color: mix(#fff, $gray, 25%);
+  -webkit-animation: intro 0.3s both;
+          animation: intro 0.3s both;
+  -webkit-animation-delay: 0.45s;
+          animation-delay: 0.45s;
+  background-color: mix(#fff, $gray, 90%);
+  border-top: 1px solid mix(#fff, $gray, 50%);
+
+  footer {
+    @include container;
+    @include clearfix;
+    margin-top: 0.5em;
+    padding: 0 1em 0.5em;
+    text-align: center;
+
+    @include breakpoint($x-large) {
+      max-width: $x-large;
+    }
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.page__footer-copyright {
+  font-size: $type-size-7;
+}
+
+.page__footer-heart {
+  color: $theme-color;
+}
+

@@ -1,0 +1,15 @@
+# main links
+main:
+  - title: "Github"
+    url: https://github.com/Guzpenha/transformer_rankers
+  - title: "Documentation"
+    url: https://guzpenha.github.io/transformer-rankers-doc/html/index.html
+  # - title: "Blog"
+  #   url: /blog        
+  # - title: "Submenu"
+  #   url: /
+  #   children: 
+  #     - title: "Sitemap"
+  #       url: /sitemap.xml
+  #     - title: "RSS"
+  #       url: /feed.xml   

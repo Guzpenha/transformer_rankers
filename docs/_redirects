@@ -1,0 +1,4 @@
+# Redirect default Netlify subdomain to primary domain
+# http://sparrowx.netlify.com/* http://sparrowx.mighil.com/:splat 301!
+# https://sparrowx.netlify.com/* http://sparrowx.mighil.com/:splat 301!
+/mighil https://mighil.com

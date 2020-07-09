@@ -1,0 +1,277 @@
+// Ridiculously Responsive Social Sharing Buttons
+// Team: @dbox, @joshuatuscan
+// Site: http://rrssb.ml
+// Twitter: @therealkni
+//
+//        ___           ___
+//       /__/|         /__/\        ___
+//      |  |:|         \  \:\      /  /\
+//      |  |:|          \  \:\    /  /:/
+//    __|  |:|      _____\__\:\  /__/::\
+//   /__/\_|:|____ /__/::::::::\ \__\/\:\__
+//   \  \:\/:::::/ \  \:\~~\~~\/    \  \:\/\
+//    \  \::/~~~~   \  \:\  ~~~      \__\::/
+//     \  \:\        \  \:\          /__/:/
+//      \  \:\        \  \:\         \__\/
+//       \__\/         \__\/
+//
+// Note: You can and should add or remove buttons from config settings and
+//       $social-list based on your specific needs.
+
+// config settings
+$rrssb-txt: #fff !default;
+$rrssb-email: #0a88ff !default;
+$rrssb-facebook: #306199 !default;
+$rrssb-tumblr: #32506d !default;
+$rrssb-linkedin: #007bb6 !default;
+$rrssb-twitter: #26c4f1 !default;
+$rrssb-googleplus: #e93f2e !default;
+$rrssb-reddit: #8bbbe3 !default;
+$rrssb-youtube: #df1c31 !default;
+$rrssb-pinterest: #b81621 !default;
+$rrssb-pocket: #ed4054 !default;
+$rrssb-github: #444 !default;
+$rrssb-instagram: #125688 !default;
+$rrssb-hackernews: #ff6600 !default;
+$rrssb-delicious: #0b79e5 !default;
+$rrssb-vk: #4d71a9 !default;
+$rrssb-print: #8d98a2 !default;
+$rrssb-whatsapp: #43d854 !default;
+$rrssb-xing: #005A5F !default;
+
+// Set the border radius for the buttons
+$rrssb-border-radius: 2px !default;
+$rrssb-main-font: "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+
+// Variable list for all social button colors to be iterated over.
+$social-list: (rrssb-email $rrssb-email, rrssb-facebook $rrssb-facebook, rrssb-tumblr $rrssb-tumblr, rrssb-linkedin $rrssb-linkedin, rrssb-twitter $rrssb-twitter, rrssb-googleplus $rrssb-googleplus, rrssb-youtube $rrssb-youtube, rrssb-reddit $rrssb-reddit, rrssb-pinterest $rrssb-pinterest, rrssb-pocket $rrssb-pocket, rrssb-github $rrssb-github, rrssb-instagram $rrssb-instagram, rrssb-delicious $rrssb-delicious, rrssb-vk $rrssb-vk, rrssb-hackernews $rrssb-hackernews,rrssb-whatsapp $rrssb-whatsapp, rrssb-print $rrssb-print, rrssb-xing $rrssb-xing);
+
+
+// fade-in animation so it doesnt blink
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1;}
+}
+
+// The meat and potatoes
+.rrssb-buttons {
+  box-sizing: border-box;
+  font-family: $rrssb-main-font;
+  font-size: 12px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  animation-duration: .3s;
+  animation-fill-mode: both;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-out;
+  animation-name: fade-in;
+  animation-delay: .2s;
+
+  // clearfix buttons for large-format
+  &:after {
+    clear: both;
+  }
+
+  &:before,
+  &:after {
+    content: ' ';
+    display: table;
+  }
+
+  li {
+    box-sizing: border-box;
+    float: left;
+    height: 100%;
+    line-height: 13px;
+    list-style: none;
+    margin: 0;
+    padding: 0 2px;
+
+    // This generates individual button classes for each item in social list on line 39.
+    @each $s-name in $social-list {
+      &.#{nth($s-name, 1)} {
+        a {
+          background-color: nth($s-name, 2);
+
+          &:hover {
+            background-color: darken(nth($s-name, 2), 10%);
+          }
+        }
+      }
+    }
+    // end @each directive
+
+    a {
+      background-color: #ccc;
+      border-radius: $rrssb-border-radius;
+      box-sizing: border-box;
+      display: block;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-font-smoothing: antialiased;
+      font-weight: bold;
+      height: 100%;
+      padding: 11px 7px 12px 27px;
+      position: relative;
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background-color 0.2s ease-in-out;
+      width: 100%;
+
+      .rrssb-icon {
+        display: block;
+        left: 10px;
+        padding-top: 9px;
+        position: absolute;
+        top: 0;
+        width: 10%;
+
+        svg {
+          height: 17px;
+          width: 17px;
+
+          path, circle {
+            fill: $rrssb-txt;
+          }
+        }
+      }
+
+      .rrssb-text {
+        color: $rrssb-txt;
+      }
+
+      &:active {
+        box-shadow: inset 1px 3px 15px 0 rgba(22, 0, 0, .25);
+      }
+    }
+
+    &.small {
+      a {
+        padding: 0;
+
+        .rrssb-icon {
+          left: auto;
+          margin: 0 auto;
+          overflow: hidden;
+          position: relative;
+          top: auto;
+          width: 100%;
+        }
+
+        .rrssb-text {
+          visibility: hidden;
+        }
+      }
+    }
+  }
+
+  &.large-format {
+    height: auto;
+
+    li {
+      height: auto;
+
+      a {
+        backface-visibility: hidden;
+        border-radius: 0.2em;
+        padding: 8.5% 0 8.5% 12%;
+
+        .rrssb-icon {
+          height: 100%;
+          left: 7%;
+          padding-top: 0;
+          width: 12%;
+
+          svg {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            width: 100%;
+          }
+        }
+
+        .rrssb-text {
+          backface-visibility: hidden;
+        }
+      }
+    }
+  }
+
+  &.small-format {
+    padding-top: 5px;
+
+    li {
+      height: 80%;
+      padding: 0 1px;
+
+      a {
+        .rrssb-icon {
+          height: 100%;
+          padding-top: 0;
+
+          svg {
+            height: 48%;
+            position: relative;
+            top: 6px;
+            width: 80%;
+          }
+        }
+      }
+    }
+  }
+
+  &.tiny-format {
+    height: 22px;
+    position: relative;
+
+    li {
+      padding-right: 7px;
+
+      a {
+        background-color: transparent;
+        padding: 0;
+
+        .rrssb-icon {
+          // Avoids a shifting effect in IE11, ref #144
+          height: 100%;
+          svg {
+            height: 70%;
+            width: 100%;
+          }
+        }
+
+        &:hover,
+        &:active {
+          background-color: transparent;
+        }
+      }
+
+      // This generates individual button classes for each item in social list on line 39.
+      @each $s-name in $social-list {
+        &.#{nth($s-name, 1)} {
+          a {
+            .rrssb-icon {
+              svg {
+                path {
+                  fill: nth($s-name, 2);
+                }
+              }
+
+              &:hover {
+                .rrssb-icon {
+                  svg {
+                    path {
+                      fill: darken(nth($s-name, 2), 20%);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } // end @each directive
+    }
+  }
+}

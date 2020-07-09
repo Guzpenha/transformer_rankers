@@ -1,0 +1,85 @@
+/* ==========================================================================
+   SINGLE POST
+   ========================================================================== */
+
+#main {
+  @include container;
+  @include clearfix;
+  margin-top: 2em;
+  padding-left: 1em;
+  padding-right: 1em;
+  -webkit-animation: intro 0.3s both;
+          animation: intro 0.3s both;
+  -webkit-animation-delay: 0.35s;
+          animation-delay: 0.35s;
+}
+
+.post {
+  margin-bottom: 2em;
+  float: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: $max-width;
+  @include breakpoint($small) {
+    padding: 0 0.75rem;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+  }
+}
+
+.post__title {
+  margin-top: 0;
+  line-height: 1.3;
+  padding-bottom: 0.2em;
+  font-size: 1.7em;
+  margin-bottom: 0;
+
+  & + .post__meta {
+    margin-top: -0.5em;
+  }
+}
+
+.post__content {
+
+  p, li, dl {
+    font-size: 1em;
+  }
+
+  /* blockquote citations */
+  blockquote + .small {
+    margin-top: -1.5em;
+    padding-left: 1.25rem;
+  }
+}
+
+/*
+   Social sharing
+   ========================================================================== */
+
+.post__share {
+  margin-top: 2em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+  border-top: 1px solid $border-color;
+}
+
+/*
+   Post meta
+   ========================================================================== */
+
+.post__meta {
+  margin-top: 2em;
+  color: mix(#fff, $gray, 25%);
+  font-size: 0.8em;
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+

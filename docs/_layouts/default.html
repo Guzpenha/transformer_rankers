@@ -1,0 +1,49 @@
+---
+---
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+    {% include seo.html %}
+
+    <link href="{% if site.atom_feed.path %}{{ site.atom_feed.path }}{% else %}{{ '/feed.xml' | absolute_url }}{% endif %}" type="application/atom+xml" rel="alternate" title="{{ site.title }} Feed">
+
+    <!-- http://t.co/dKP3o1e -->
+    <meta name="HandheldFriendly" content="True">
+    <meta name="MobileOptimized" content="320">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+      document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+    </script>
+
+    <!-- For all browsers -->
+    <!--  <link href="https://fonts.googleapis.com/css?family=Gochi+Hand|Heebo:100,300,400,500,700,800,900" rel="stylesheet">  -->
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | absolute_url }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ site.favicon | absolute_url }}">
+    <meta http-equiv="cleartype" content="on">
+    {% if site.tags != "" %}
+  {% include collecttags.html %}
+{% endif %}
+  </head>
+
+  <body class="layout--{{ page.layout | default: layout.layout }}{% if page.classes or layout.classes %}{{ page.classes | default: layout.classes | join: ' ' | prepend: ' ' }}{% endif %}">
+  <div id="mastheadbackground"></div>
+    {{ content }}
+
+    <div class="page__footer">
+      <footer>
+        <div class="page__footer-copyright">&copy; {{ site.time | date: '%Y' }} {{ site.author.name }} (<a href="https://twitter.com/_Guz_" rel="nofollow">@_Guz_</a>). Jekyll <a href="https://github.com/mighildotcom/sparrowx">SparrowX</a> Theme </a>.</div>
+      </footer>
+    </div>
+     <script src="{{ '/compressed.js' | absolute_url }}"></script>
+    <!--<script src="{{ '/assets/js/plugins/jquery-1.12.4.min.js' | absolute_url }}"></script>
+    <script src="{{ '/assets/js/plugins/rrssb.min.js' | absolute_url }}"></script>
+    <script src="{{ '/assets/js/slimmenu.js' | absolute_url }}"></script>
+    <script src="{{ '/assets/js/main.js' | absolute_url }}"></script> -->
+    {% include analytics.html %}
+
+  </body>
+</html>

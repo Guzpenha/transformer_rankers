@@ -1,0 +1,405 @@
+/* ==========================================================================
+   BASE ELEMENTS
+   ========================================================================== */
+
+%tab-focus {
+  /* Default*/
+  outline: thin dotted #f89406;
+  /* Webkit*/
+  outline: 5px auto #f89406;
+  outline-offset: -2px;
+}
+
+p>code, a>code, li>code, figcaption>code, td>code {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+    background: #f2f3f3;
+    border: 1px solid #b2b2b2;
+    border-radius: 2px;
+    font-size: 0.8em;
+}
+
+div.highlighter-rouge .highlight, figure.highlight .highlight {
+    font-size: 0.8rem;
+}
+
+/* #mastheadbackground {
+    height: 155px;
+    margin-bottom: -175px;
+    background-color: #F2F3F3;
+}*/
+
+.highligher-rouge {
+    font-size: .8em;
+}
+
+table td {
+    border-bottom: solid 2px #e6e6e6;
+}
+
+.button-dark {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: 2px solid #a33025;
+  font-weight: bold;
+  background: #F2F3F3;
+  color: #a33025;
+}
+
+@mixin clearfix {
+  clear: both;
+
+  &::after {
+    clear: both;
+    content: "";
+    display: table;
+  }
+}
+
+html {
+  /* sticky footer fix */
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  color: $text-color;
+  font-family: $global-font-family;
+  line-height: 1.7;
+  color: $text-color;
+  border-top: 3px solid $theme-color;
+
+  &.overflow--hidden {
+    /* when primary navigation is visible, the content in the background won't scroll */
+    overflow: hidden;
+  }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  line-height: 1.2;
+  font-family: $global-font-family;
+  font-weight: 600;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: $type-size-3;
+}
+
+h2 {
+  font-size: $type-size-3;
+}
+
+h3 {
+  font-size: $type-size-4;
+}
+
+h4 {
+  font-size: $type-size-4;
+}
+
+h5 {
+  font-size: $type-size-4;
+}
+
+h6 {
+  font-size: $type-size-4;
+}
+
+small, .small {
+  font-size: $type-size-7;
+}
+
+p {
+  margin-bottom: 1.3em;
+}
+
+u,
+ins {
+  text-decoration: none;
+  border-bottom: 1px solid $text-color;
+  a {
+    color: inherit;
+  }
+}
+
+del a {
+  color: inherit;
+}
+
+/* reduce orphans and widows when printing */
+
+p, pre, blockquote, ul, ol, dl, figure, table, fieldset {
+  orphans: 3;
+  widows: 3;
+}
+
+/* abbreviations */
+
+abbr[title],
+abbr[data-original-title] {
+  text-decoration: none;
+  cursor: help;
+  border-bottom: 1px dotted $text-color;
+}
+
+/* blockquotes */
+
+blockquote {
+  background: $blockquote-background-color;
+  border-radius: 1em;
+  padding: 1em 3em;
+  margin: 1em;
+  position: relative;
+}
+
+blockquote:before {
+  font-family: $global-font-family;
+  font-style: italic;
+  display: block;
+  content: "\201C";
+  font-size: 7em;
+  position: absolute;
+  left: -0.2em;
+  top: -0.2em;
+  color: #7a7a7a;
+}
+
+blockquote cite {
+  color: #999999;
+  font-size: 0.9em;
+  display: block;
+  margin-top: 5px;
+  text-align: right;
+}
+ 
+blockquote cite:before {
+  content: "\2014 \2009";
+}
+
+blockquote p:last-child {
+  margin: 0;
+}
+
+/* links */
+
+a {
+  text-decoration: none;
+  &:focus {
+    @extend %tab-focus;
+  }
+
+  &:hover,
+  &:active {
+    outline: 0;
+  }
+  
+  &:hover { color: $link-color-hover; }
+  &:hover > image { opacity: 0.7; }
+}
+
+/* code */
+
+tt, code, kbd, samp, pre {
+  font-family: $monospace;
+}
+
+pre {
+  overflow-x: auto;
+    border-left: solid 0 #52d841;
+    color: #4fff38;
+    background: #404040;
+    line-height: 1.4;
+    font-size: .8em;
+    margin: 0 0 1.7em;
+    max-width: 100%;
+    padding: 1.5em;
+}
+
+p > code,
+a > code,
+li > code,
+figcaption > code,
+td > code {
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  background: $code-background-color;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+
+  &:before, &:after {
+    letter-spacing: -0.2em;
+    content: "\00a0"; /* non-breaking space*/
+  }
+}
+
+/* horizontal rule */
+
+hr {
+  display: block;
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid $border-color;
+}
+
+/* lists */
+
+ul li,
+ol li {
+  margin-bottom: 0em;
+}
+
+li ul,
+li ol {
+  margin-top: 0.5em;
+}
+
+/*
+   Media and embeds
+   ========================================================================== */
+
+/* Figures and images */
+
+figure {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: start;
+          align-items: flex-start;
+  flex-wrap: wrap;
+  margin: 1em 0 0;
+
+  img,
+  iframe,
+  .fluid-width-video-wrapper {
+    margin-bottom: 1em;
+  }
+
+  img {
+    width: 100%;
+    border-radius: $border-radius;
+    -webkit-transition: $global-transition;
+    transition: $global-transition;
+  }
+
+  > a {
+    display: block;
+  }
+
+  &.half {
+    > a,
+    > img {
+      @include breakpoint($small) {
+        width: calc(50% - 0.5em);
+      }
+    }
+
+    figcaption {
+      width: 100%;
+    }
+  }
+
+  &.third {
+    > a,
+    > img {
+      @include breakpoint($small) {
+        width: calc(33.3333% - 0.5em);
+      }
+    }
+
+    figcaption {
+      width: 100%;
+    }
+  }
+}
+
+/* Figure captions */
+
+figcaption {
+  margin-bottom: 0.5em;
+  color: mix(#fff, $text-color, 25%);
+  font-family: $global-font-family;
+  font-size: $type-size-6;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid $border-color;
+    -webkit-transition: $global-transition;
+    transition: $global-transition;
+
+    &:hover {
+      color: #000;
+      border-bottom-color: #000;
+    }
+  }
+}
+
+
+/* Fix IE9 SVG bug */
+
+svg:not(:root) {
+  overflow: hidden;
+}
+
+/*
+   Navigation lists
+   ========================================================================== */
+
+/**
+ * Removes margins, padding, and bullet points from navigation lists
+ *
+ * Example usage:
+ * <nav>
+ *    <ul>
+ *      <li><a href="#link-1">Link 1</a></li>
+ *      <li><a href="#link-2">Link 2</a></li>
+ *      <li><a href="#link-3">Link 3</a></li>
+ *    </ul>
+ *  </nav>
+ */
+ 
+nav {
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    list-style: none;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  /* override white-space for nested lists */
+  ul li,
+  ol li {
+    margin-bottom: 0;
+  }
+
+  li ul,
+  li ol {
+    margin-top: 0;
+  }
+}
+
+/*
+   Global animation transition
+   ========================================================================== */
+
+
+b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a, tr, td, form button, textarea, input[type="submit"], .btn, .highlight, .archive__item-teaser {
+  -webkit-transition: $global-transition;
+  transition: $global-transition;
+}
+
+input, textarea, input[type="submit"] {
+  font-family: $global-font-family;
+}

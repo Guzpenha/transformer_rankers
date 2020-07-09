@@ -1,0 +1,32 @@
+{% if page.collection != 'posts' %}
+  {% assign path_type = nil %}
+  {% assign crumb_path = '/' %}
+{% else %}
+  {% assign crumb_path = site.categories.path %}
+{% endif %}
+
+<nav class="breadcrumbs">
+  <ol itemscope itemtype="http://schema.org/BreadcrumbList">
+    {% assign crumbs = page.url | split: '/' %}
+    {% assign i = 1 %}
+    {% for crumb in crumbs offset: 1 %}
+      {% if forloop.first %}
+        <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem">
+          <a href="{{ site.url }}{{ site.baseurl }}/" itemprop="item"><span itemprop="name">Home</span></a>
+          <meta itemprop="position" content="{{ i }}" />
+        </li>
+        <span class="sep">/</span>
+      {% endif %}
+      {% if forloop.last %}
+        <li class="current">{{ page.title }}</li>
+      {% else %}
+        {% assign i = i | plus: 1 %}
+        <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem">
+          <a href="{{ crumb | downcase | replace: '%20', '-' | prepend: path_type | prepend: crumb_path | absolute_url }}" itemprop="item"><span itemprop="name">{{ crumb | replace: '-', ' ' | replace: '%20', ' ' | capitalize }}</span></a>
+          <meta itemprop="position" content="{{ i }}" />
+        </li>
+        <span class="sep">/</span>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>

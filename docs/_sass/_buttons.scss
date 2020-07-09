@@ -1,0 +1,62 @@
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+/*
+   Default button
+   ========================================================================== */
+
+.btn {
+  /* default button */
+  display: inline-block;
+  margin-bottom: 0.25em;
+  padding: 0.5em 1em;
+  color: #fff !important;
+  font-family: $caption-font-family;
+  text-align: center;
+  text-decoration: none;
+  background-color: $theme-color;
+  border: 0 !important;
+  border-radius: $border-radius;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $link-color-hover;
+  }
+
+  .icon {
+    margin-right: 0.5em;
+  }
+
+  .icon + .hidden {
+    margin-left: -0.5em; /* override for hidden text*/
+  }
+
+  /* fills width of parent container */
+
+  &--block {
+    display: block;
+    width: 100%;
+
+    + .btn--block {
+      margin-top: 0.25em;
+    }
+  }
+
+  /* light outline */
+
+  &--light-outline {
+    border: 1px solid #fff !important; /* override*/
+    background-color: transparent;
+  }
+
+  /* disabled */
+
+  &--disabled {
+    pointer-events: none;
+    cursor: not-allowed;
+    filter: alpha(opacity=65);
+    box-shadow: none;
+    opacity: 0.65;
+  }
+}

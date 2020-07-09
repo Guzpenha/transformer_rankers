@@ -1,0 +1,16 @@
+<div class="list__item">
+  <article class="page__item" itemscope itemtype="http://schema.org/CreativeWork">
+
+    <h3 class="page__item-title" itemprop="headline">
+      {% if post.link %}
+        <a href="{{ post.link }}">{{ post.title }}</a> <a href="{{ post.url | absolute_url }}" rel="permalink"><i class="fa fa-link" aria-hidden="true" title="permalink"></i><span class="sr-only">Permalink</span></a>
+      {% else %}
+        <a href="{{ post.url | absolute_url }}" rel="permalink">{{ post.title }}</a>
+      {% endif %}
+    </h3>
+
+    {% if post.date %}
+    <p class="page__meta"> <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %d, %Y" }} </time></p>
+    {% endif %}
+  </article>
+</div>
