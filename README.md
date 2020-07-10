@@ -1,3 +1,5 @@
+<img src="https://guzpenha.github.io/transformer_rankers/images/tRankers.png" align="right" height="90px"/>
+
 # Transformer-Rankers
 A library to conduct ranking experiments with transformers.
 
