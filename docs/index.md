@@ -24,7 +24,7 @@ A [library](https://github.com/Guzpenha/transformer_rankers) to conduct ranking 
 
 ## Example: BERT-ranker for retrieving similar questions
 
-The task is to rank a similar questions to an input question. The following will download the data and train BERT-ranker (with only 1000 samples to be fast) using one of our example scripts:
+The task is to rank similar questions to an input question. We download the data and train BERT-ranker (with only 1000 samples to be fast) using one of our example scripts:
 
 ```bash
     cd transformer_rankers/scripts
