@@ -32,8 +32,8 @@ The task is to rank similar questions to an input question. We download the data
 
     python ../examples/crr_bert_ranker_example.py \
         --task qqp \
-        --data_folder ../data/ \
-        --output_dir ../data/output_data \
+        --data_folder ../../data/ \
+        --output_dir ../../data/output_data \
         --sample_data 1000
 ```
 <!-- 
