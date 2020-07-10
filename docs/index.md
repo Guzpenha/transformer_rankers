@@ -36,6 +36,14 @@ The task is to rank similar questions to an input question. We download the data
         --output_dir ../../data/output_data \
         --sample_data 1000
 ```
+
+## News
+
+10-07-2020: Get uncertainty estimates, i.e. variance, for rankers relevance predictions with [MC Dropout](https://arxiv.org/abs/1506.02142) at inference time using [*predict_with_uncertainty*](https://guzpenha.github.io/transformer-rankers-doc/html/_autosummary/transformer_rankers.trainers.transformer_trainer.TransformerTrainer.html#transformer_rankers.trainers.transformer_trainer.TransformerTrainer.predict_with_uncertainty).
+
+09-07-2020: Transformer-rankers initial version realeased with support for 6 ranking datasets and negative sampling techniques (e.g. BM25, sentenceBERT similarity). The library uses [huggingface](https://huggingface.co/transformers/pretrained_models.html) pre-trained transformer models for ranking. See the main components at the documentation [page](https://guzpenha.github.io/transformer-rankers-doc/html/main-modules.html).
+
+
 <!-- 
 The output will be something like this:
 ```
