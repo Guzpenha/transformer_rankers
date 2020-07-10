@@ -32,10 +32,10 @@ Example
 2. Train BERT-ranker for Quora Question Pairs (with only 1000 samples to be fast):
 ::
    python ../examples/crr_bert_ranker_example.py \
-         --task qqp \
-         --data_folder ../data/ \
-         --output_dir ../data/output_data \
-         --sample_data 1000
+      --task qqp \
+      --data_folder ../../data/ \
+      --output_dir ../../data/output_data \
+      --sample_data 1000
 
 The output will be something like this:
 :: 
