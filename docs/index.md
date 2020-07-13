@@ -22,7 +22,7 @@ A [library](https://github.com/Guzpenha/transformer_rankers) to conduct ranking 
     pip install -r requirements.txt
 ```
 
-## Example: BERT-ranker for retrieving similar questions
+## Example (I): BERT-ranker for retrieving similar questions
 
 The task is to rank similar questions to an input question. We download the data and train BERT-ranker (with only 1000 samples to be fast) using one of our example scripts:
 
@@ -36,6 +36,9 @@ The task is to rank similar questions to an input question. We download the data
         --output_dir ../../data/output_data \
         --sample_data 1000
 ```
+
+## Example (II): BERT-ranker for a custom dataset
+Check our documentation for an [example](https://guzpenha.github.io/transformer-rankers-doc/html/quick-start.html#example-ii-custom-dataset) with a custom dataset.
 
 ## News
 
