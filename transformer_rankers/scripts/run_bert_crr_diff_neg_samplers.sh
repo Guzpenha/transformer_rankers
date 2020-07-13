@@ -9,7 +9,7 @@ do
     do
         for TEST_NEG_SAMPLER in 'bm25' 'random' 'sentenceBERT'
         do
-            for SEED in 42 1 2 3 4
+            for SEED in 42
             do
                 python ../examples/crr_bert_ranker_example.py \
                     --task $TASK \
@@ -18,16 +18,20 @@ do
                     --sample_data -1 \
                     --max_seq_len 512 \
                     --num_validation_instances 1000 \
-                    --validate_every_epochs 1 \
+                    --validate_every_epochs 2 \
                     --num_epochs 1 \
-                    --train_batch_size 8 \
-                    --val_batch_size 8 \
+                    --train_batch_size 6 \
+                    --val_batch_size 6 \
                     --num_ns_train 1 \
                     --num_ns_eval 19 \
                     --train_negative_sampler $TRAIN_NEG_SAMPLER \
                     --test_negative_sampler $TEST_NEG_SAMPLER \
                     --seed $SEED \
-                    --anserini_folder $ANSERINI_FOLDER
+                    --anserini_folder $ANSERINI_FOLDER 
+                    --bert_sentence_model $REPO_DIR/data/${TASK}/bert-base-cased_${TASK}
+                    #\
+                    #--predict_with_uncertainty_estimation \
+                    # --num_foward_prediction_passes 10 \
             done
         done
     done

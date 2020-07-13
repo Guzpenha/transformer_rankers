@@ -19,9 +19,9 @@ do
                     --max_seq_len 512 \
                     --num_validation_instances 1000 \
                     --validate_every_epochs 1 \
-                    --num_epochs 1 \
-                    --train_batch_size 8 \
-                    --val_batch_size 8 \
+                    --num_epochs 2 \
+                    --train_batch_size 6 \
+                    --val_batch_size 6 \
                     --num_ns_train 1 \
                     --num_ns_eval 19 \
                     --train_negative_sampler $TRAIN_NEG_SAMPLER \
