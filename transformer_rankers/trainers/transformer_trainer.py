@@ -92,7 +92,7 @@ class TransformerTrainer():
                 self.optimizer.zero_grad()
 
             if self.validate_epochs > 0 and epoch % self.validate_epochs == 0:
-                logits, labels = self.predict(loader = self.val_loader)
+                logits, labels, _ = self.predict(loader = self.val_loader)
                 res = results_analyses_tools.evaluate_and_aggregate(logits, labels, ['ndcg_cut_10'])
                 val_ndcg = res['ndcg_cut_10']
                 if val_ndcg>self.best_ndcg:
@@ -110,13 +110,13 @@ class TransformerTrainer():
             loader: the DataLoader containing the set to run the prediction and evaluation.         
 
         Returns:
-            A tuple of (logits, labels). For example:
-            ([[0.01, 0.12], [1.2, 0.9]])
+            Matrices (logits, labels, softmax_logits)
         """
 
         self.model.eval()
         all_logits = []
         all_labels = []
+        all_softmax_logits = []
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
@@ -127,6 +127,7 @@ class TransformerTrainer():
                     _, logits = outputs[:2]
                     all_labels+=batch["labels"].tolist()
                     all_logits+=logits[:, 1].tolist()
+                    all_softmax_logits+=torch.softmax(logits, dim=1)[:, 1].tolist()
 
                 elif self.task_type == "generation":
                     outputs = self.model(**batch)                    
@@ -136,10 +137,11 @@ class TransformerTrainer():
 
                     pred_relevant = token_logits[0:, 0 , relevant_token_id]
                     pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
-                    pred = pred_relevant-pred_not_relevant                    
+                    both = torch.stack((pred_relevant, pred_not_relevant))
 
-                    all_logits+=pred.tolist()
+                    all_logits+=pred_relevant.tolist()
                     all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
+                    all_softmax_logits+=torch.softmax(both, dim=0)[0].tolist()
 
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
                 break
@@ -147,15 +149,15 @@ class TransformerTrainer():
         #accumulates per query
         all_labels = utils.acumulate_list_multiple_relevant(all_labels)
         all_logits = utils.acumulate_l1_by_l2(all_logits, all_labels)
-        return all_logits, all_labels
+        all_softmax_logits = utils.acumulate_l1_by_l2(all_softmax_logits, all_labels)
+        return all_logits, all_labels, all_softmax_logits
 
     def predict_with_uncertainty(self, loader, foward_passes):
         """
         Uses trained model to make predictions on the loader with uncertainty estimations.
 
         This methods uses MC dropout to get the predicted relevance (mean) and uncertainty (variance)
-        by enabling dropout at test time and making K foward passes. Use foward_passes=1 for deterministic
-        point-estimate relevance predictions.
+        by enabling dropout at test time and making K foward passes.
 
         See "Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning"
         https://arxiv.org/abs/1506.02142.
@@ -165,8 +167,9 @@ class TransformerTrainer():
             foward_passes: int indicating the number of foward prediction passes for each instance.
 
         Returns:
-            A quadruplet(?) of (logits, uncertainties, labels, foward_passes_logits), the values of the predictions (mean)
-            for every instance, the uncertainty (variance), the labels and all predictions obtained during f_passes.
+            Matrices (logits, labels, softmax_logits, foward_passes_logits, uncertainties):
+            The logits (mean) for every instance, labels, softmax_logits (mean) all predictions
+            obtained during f_passes (foward_passes_logits) and the uncertainties (variance).
         """
         def enable_dropout(model):
             for module in model.modules():
@@ -183,34 +186,40 @@ class TransformerTrainer():
         logits = []
         labels = []
         uncertainties = []
+        softmax_logits = []
         foward_passes_logits = [[] for i in range(foward_passes)] # foward_passes X queries        
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
 
             with torch.no_grad():
+                fwrd_predictions = []
+                fwrd_softmax_predictions = []
                 if self.task_type == "classification":                    
                     labels+= batch["labels"].tolist()
-                    fwrd_predictions = []
                     for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, batch_logits = outputs[:2]
+
                         fwrd_predictions.append(batch_logits[:, 1].tolist())
+                        fwrd_softmax_predictions.append(torch.softmax(batch_logits, dim=1)[:, 1].tolist())
                         foward_passes_logits[i]+=batch_logits[:, 1].tolist()
                 elif self.task_type == "generation":
                     labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
-                    fwrd_predictions = []
                     for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, token_logits = outputs[:2]
                         pred_relevant = token_logits[0:, 0 , relevant_token_id]
-                        pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
-                        pred = pred_relevant-pred_not_relevant
-                        fwrd_predictions.append(pred.tolist())
-                        foward_passes_logits[i]+=pred.tolist()
+                        pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]                        
+                        both = torch.stack((pred_relevant, pred_not_relevant))
+
+                        fwrd_predictions.append(pred_relevant.tolist())
+                        fwrd_softmax_predictions.append(torch.softmax(both, dim=0)[0].tolist())
+                        foward_passes_logits[i]+=pred_relevant.tolist()
 
                 logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
                 uncertainties += np.array(fwrd_predictions).var(axis=0).tolist()
+                softmax_logits += np.array(fwrd_softmax_predictions).mean(axis=0).tolist()
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
                 break
 
@@ -218,17 +227,18 @@ class TransformerTrainer():
         labels = utils.acumulate_list_multiple_relevant(labels)
         logits = utils.acumulate_l1_by_l2(logits, labels)
         uncertainties = utils.acumulate_l1_by_l2(uncertainties, labels)
+        softmax_logits = utils.acumulate_l1_by_l2(softmax_logits, labels)
         for i, foward_logits in enumerate(foward_passes_logits):
             foward_passes_logits[i] = utils.acumulate_l1_by_l2(foward_logits, labels)
 
-        return logits, uncertainties, labels, foward_passes_logits
+        return logits, labels, softmax_logits, foward_passes_logits, uncertainties
 
     def test(self):
         """
         Uses trained model to make predictions on the test loader.
 
         Returns:
-            A tuple of (logits, labels)
+            Matrices (logits, labels, softmax_logits)
         """        
         self.num_validation_instances = -1 # no sample on test.
         return self.predict(self.test_loader)
@@ -238,7 +248,7 @@ class TransformerTrainer():
         Uses trained model to make predictions on the test loader using MC dropout as bayesian estimation.
 
         Returns:
-            A triplet of (logits, uncertainties, labels)
+            Matrices (logits, labels, softmax_logits, foward_passes_logits, uncertainties)
         """        
         self.num_validation_instances = -1 # no sample on test.
         return self.predict_with_uncertainty(self.test_loader, foward_passes)

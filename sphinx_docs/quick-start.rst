@@ -65,6 +65,10 @@ In the example below we read a custom .csv with the dataset we want to train the
 .. code-block:: python
   :linenos:
 
+   from transformers import BertTokenizer, BertForSequenceClassification
+   import pandas as pd
+   import logging
+   
    from transformer_rankers.trainers import transformer_trainer
    from transformer_rankers.datasets import dataset, preprocess_crr
    from transformer_rankers.negative_samplers import negative_sampling 
@@ -80,10 +84,10 @@ In the example below we read a custom .csv with the dataset we want to train the
    #Instantiate random negative samplers 
    # (1 for training 9 negative candidates for test)
    ns_train = negative_sampling.\
-      RandomNegativeSampler(list(train["response"].values), 1)
+      RandomNegativeSampler(list(train["Relevant_Document"].values), 1)
    ns_val = negative_sampling.\
-      RandomNegativeSampler(list(valid["response"].values) + \
-      list(train["response"].values), 9)
+      RandomNegativeSampler(list(valid["Relevant_Document"].values) + \
+      list(train["Relevant_Document"].values), 9)
 
    #Create the loaders for the datasets, 
    #with the respective negative samplers        
