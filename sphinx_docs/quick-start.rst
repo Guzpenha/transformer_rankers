@@ -5,7 +5,7 @@ Setup
 ***********
 1. Clone the repository:
 ::
-    git clone git@github.com:Guzpenha/transformer_rankers.git    
+    git clone https://github.com/Guzpenha/transformer_rankers.git
     cd transformer_rankers
 
 2. [Optional] Create a virtual env (python >= 3.6) and activate it:
@@ -97,7 +97,7 @@ In the example below we read a custom .csv with the dataset we want to train the
       tokenizer=tokenizer, negative_sampler_train=ns_train, 
       negative_sampler_val=ns_val, task_type='classification', 
       train_batch_size=32, val_batch_size=32, max_seq_len=512, 
-      sample_data=-1, "data/custom_dataset")
+      sample_data=-1, cache_path="data/custom_dataset")
 
    train_loader, val_loader, test_loader = dataloader.\
       get_pytorch_dataloaders()
@@ -110,12 +110,12 @@ In the example below we read a custom .csv with the dataset we want to train the
       train_loader=train_loader,
       val_loader=val_loader, test_loader=test_loader, 
       num_ns_eval=9, task_type="classification", tokenizer=tokenizer,
-      validate_every_epoch=1, num_validation_instances=-1,
+      validate_every_epochs=1, num_validation_instances=-1,
       num_epochs=1, lr=0.0005, sacred_ex=None)
 
    #Train and evaluate
    trainer.fit()
-   preds, labels = trainer.test()
+   preds, labels, _ = trainer.test()
    res = results_analyses_tools.\
       evaluate_and_aggregate(preds, labels, ['ndcg_cut_10'])
    for metric, v in res.items():

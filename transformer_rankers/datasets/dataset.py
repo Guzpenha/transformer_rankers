@@ -168,14 +168,15 @@ class QueryDocumentDataset(data.Dataset):
     def _cache_instances(self):
         """
         Loads tensors into memory or creates the dataset when it does not exist already.
-        """
-        signature = "set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}".\
+        """        
+        signature = "set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}".\
             format(self.data_partition,
                    self.negative_sampler.num_candidates_samples,
                    self.negative_sampler.name,
                    self.max_seq_len,
                    self.sample_data,
-                   self.task_type)
+                   self.task_type,
+                   self.tokenizer.__class__.__name__)
         path = self.cache_path + "/" + signature
 
         if os.path.exists(path):
