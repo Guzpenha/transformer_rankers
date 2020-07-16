@@ -38,7 +38,8 @@ The task is to rank similar questions to an input question. We download the data
 ```
 
 ## Example (II): BERT-ranker for a custom dataset
-Check our documentation for an [example](https://guzpenha.github.io/transformer-rankers-doc/html/quick-start.html#example-ii-custom-dataset) with a custom dataset. Run example on this [Google Colab](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing).
+Check our documentation for an [example](https://guzpenha.github.io/transformer-rankers-doc/html/quick-start.html#example-ii-custom-dataset) with a custom dataset. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing)
+
 
 ## News
 
