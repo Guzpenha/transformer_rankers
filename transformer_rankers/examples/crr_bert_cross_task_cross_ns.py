@@ -123,7 +123,7 @@ def run_experiment(args):
             preds_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index)+"/predictions_with_dropout.csv", index=False)
 
             softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-            softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index)+"/predictions_softmax.csv", index=False)
+            softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index)+"/predictions_with_dropout_softmax.csv", index=False)
 
             for i, f_pass_preds in enumerate(foward_passes_preds):
                 preds_df = pd.DataFrame(f_pass_preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
@@ -174,7 +174,7 @@ def run_experiment(args):
         preds_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions.csv", index=False)
 
         softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-        softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_softmax.csv", index=False)
+        softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_with_dropout_softmax.csv", index=False)
 
         labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
         labels_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/labels.csv", index=False)
@@ -194,7 +194,7 @@ def run_experiment(args):
             preds_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_with_dropout.csv", index=False)
 
             softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-            softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_softmax.csv", index=False)
+            softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_with_dropout_softmax.csv", index=False)
 
             for i, f_pass_preds in enumerate(foward_passes_preds):
                 preds_df = pd.DataFrame(f_pass_preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])

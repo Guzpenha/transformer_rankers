@@ -1,6 +1,14 @@
 <img src="https://guzpenha.github.io/transformer_rankers/images/tRankers.png" align="right" height="90px"/>
 
+
 # Transformer-Rankers
+<a href="https://guzpenha.github.io/transformer-rankers-doc/html/index.html">
+<img alt="Documentation" src="https://img.shields.io/badge/docs-latest-success.svg">
+</a>
+<a href="https://github.com/Guzpenha/transformer_rankers/blob/master/LICENSE">
+<img alt="license" src="https://img.shields.io/badge/License-MIT-blue.svg">
+</a>
+
 A library to conduct ranking experiments with transformers.
 
 
