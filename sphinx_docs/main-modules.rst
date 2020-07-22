@@ -11,6 +11,7 @@ Stores processors for specific datasets as well as code to generate pytorch data
 - **conversation response ranking**: MANtIS, MSDialog, Ubuntu from DSTC8.
 - **similar question retrieval**: Quora Question Pair and LinkSO.
 - **passage retrieval**: TREC 2020 Passage Ranking.
+- **clarifying question retrieval**: ClariQ.
 
 Note that since we choose the negative sampling on the go, we do not read the negative samples from the datasets, only the relevant query-document combinations.
 

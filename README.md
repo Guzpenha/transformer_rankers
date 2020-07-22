@@ -96,6 +96,7 @@ Stores processors for specific datasets as well as code to generate pytorch data
 - **conversation response ranking**: [MANtIS](https://guzpenha.github.io/MANtIS/), [MSDialog](https://ciir.cs.umass.edu/downloads/msdialog/) and [Ubuntu v2](https://github.com/dstc8-track2/NOESIS-II/) from DSTC8.
 - **similar question retrieval**: [Quora Question Pairs](https://www.kaggle.com/c/quora-question-pairs) and [LinkSO](https://sites.google.com/view/linkso)
 - **passage retrieval**: [TREC 2020 Passage Ranking](https://microsoft.github.io/TREC-2020-Deep-Learning/).
+- **clarifying question retrieval**: [ClariQ](https://github.com/aliannejadi/ClariQ).
 
 Note that since we choose the negative sampling on the go, we do not read the negative samples from the datasets, only the relevant query-document combinations. Example extracted from TREC 2020 Passage Retrieval, in the format expected for *QueryDocumentDataset*:
 
