@@ -37,9 +37,9 @@ def run_experiment(args):
         valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
         special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }
         tokenizer.add_special_tokens(special_tokens_dict)
-    ## Similar Question Retrieval and Passage Retrieval
-    elif args.task in ["qqp", "linkso", "trec2020pr"]:
-        if args.sample_data == -1: args.sample_data=None            
+    ## Other tasks
+    elif args.task in ["qqp", "linkso", "trec2020pr", "clariq"]:
+        if args.sample_data == -1: args.sample_data=None
         train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", nrows=args.sample_data)
         valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t", nrows=args.sample_data)
 
