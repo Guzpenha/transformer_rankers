@@ -136,7 +136,8 @@ def run_experiment(args):
             uncertainties_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index)+"/uncertainties.csv", index=False)
 
     #Cross-dataset predictions
-    cross_datasets = set(["msdialog", "ubuntu_dstc8", "mantis"]) - set([args.task])    
+    cross_datasets = set(["msdialog", "ubuntu_dstc8", "mantis"]) - set([args.task])
+    cross_datasets = sorted(list(cross_datasets))
     cross_data_val_dataloader = {}
     for cross_task in cross_datasets:
         train_cross = preprocess_crr.read_crr_tsv_as_df(args.data_folder+cross_task+"/train.tsv", args.sample_data, add_turn_separator)
@@ -174,7 +175,7 @@ def run_experiment(args):
         preds_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions.csv", index=False)
 
         softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-        softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_with_dropout_softmax.csv", index=False)
+        softmax_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/predictions_softmax.csv", index=False)
 
         labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
         labels_df.to_csv(args.output_dir+"/"+str(int(args.run_id)+ns_index+task_index+1)+"/labels.csv", index=False)
