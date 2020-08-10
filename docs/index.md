@@ -37,36 +37,19 @@ The task is to rank similar questions to an input question. We download the data
         --sample_data 1000
 ```
 
-## Example (II): BERT-ranker for a custom dataset
+## Example (II): Different Transformer for a custom dataset
 Check our documentation for an [example](https://guzpenha.github.io/transformer-rankers-doc/html/quick-start.html#example-ii-custom-dataset) with a custom dataset. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing)
 
 
+## Example (III): BERT-ranker for clarifying questions
+
+Check our colab for ranking clarifying questions to queries with BERT. The results are baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing)
+
+
 ## News
+10-08-2020: Transformer-rankers was used to generate baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge.
 
 10-07-2020: Get uncertainty estimates, i.e. variance, for rankers relevance predictions with [MC Dropout](https://arxiv.org/abs/1506.02142) at inference time using [*predict_with_uncertainty*](https://guzpenha.github.io/transformer-rankers-doc/html/_autosummary/transformer_rankers.trainers.transformer_trainer.TransformerTrainer.html#transformer_rankers.trainers.transformer_trainer.TransformerTrainer.predict_with_uncertainty).
 
 09-07-2020: Transformer-rankers initial version realeased with support for 6 ranking datasets and negative sampling techniques (e.g. BM25, sentenceBERT similarity). The library uses [huggingface](https://huggingface.co/transformers/pretrained_models.html) pre-trained transformer models for ranking. See the main components at the documentation [page](https://guzpenha.github.io/transformer-rankers-doc/html/main-modules.html).
-
-
-<!-- 
-The output will be something like this:
-```
-   [...]
-   2020-06-23 11:19:44,522 [INFO] Epoch 1 val nDCG@10: 0.245
-   2020-06-23 11:19:44,522 [INFO] Predicting
-   2020-06-23 11:19:44,523 [INFO] Starting evaluation on test.
-   2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10: 0.3236
-```
-
-The experiment info will be saved at *../data/output_data*, where you can find the following files:
-```bash
-   /data/output_data/1/config.json
-   /data/output_data/1/cout.txt
-   /data/output_data/1/labels.csv
-   /data/output_data/1/predictions.csv
-   /data/output_data/1/run.json
-```
-You can easily aggregate the results of different experiment runs using */examples/crr_results_analyses_example.py*: -->
-
-
 

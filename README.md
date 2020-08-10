@@ -9,7 +9,7 @@
 <img alt="license" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </a>
 
-A library to conduct ranking experiments with transformers.
+A library to conduct ranking experiments with transformers. 
 
 
 ## Setup
@@ -85,6 +85,12 @@ The output will look like this:
     2020-06-23 11:19:44,522 [INFO] Predicting
     2020-06-23 11:19:44,523 [INFO] Starting evaluation on test.
     2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10: 0.3236
+
+
+## Colab examples
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing) Fine-tune different transformers for a dataset in pandas DataFrame format. 
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) Fine-tune BERT-ranker for ranking clarifying questions to queries (RQ2 of ClariQ challenge).
 
 
 ## Code Organization
