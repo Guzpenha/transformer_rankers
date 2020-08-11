@@ -30,15 +30,16 @@ logging.basicConfig(
 @ex.main
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
-    args.task = 'trec2020pr'
+    args.task = 'clariq'
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     if args.sample_data == -1: args.sample_data=None
     train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", nrows=args.sample_data)
     valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t", nrows=args.sample_data)
 
+    average_relevant_per_query = train.groupby("query").count().mean().values[0]
     #Choose the negative candidate sampler
     document_col = train.columns[1]
-    ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train[document_col].values), args.num_ns_train, 
+    ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train[document_col].values), average_relevant_per_query, 
             args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
 
     ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
@@ -69,11 +70,19 @@ def run_experiment(args):
     logging.info("Fitting {} for {}{}".format(model_name, args.data_folder, args.task))
     trainer.fit()
 
-    with open(args.data_folder+"clariq/query_top_10_documents.pkl", "rb") as f:
-        query_top_10_documents = pickle.load(f)
-    all_documents = []
-    for doc_list in query_top_10_documents.values():
-        all_documents+=doc_list
+    #Those web documents look really bad...
+    # with open(args.data_folder+"clariq/query_top_10_documents.pkl", "rb") as f:
+    #     query_top_10_documents = pickle.load(f)
+    # all_documents = []
+    # for doc_list in query_top_10_documents.values():
+    #     all_documents+=doc_list
+
+    # Lets try to use the TREC_DL documents. 
+    # all_documents = list(valid[document_col].values) + list(train[document_col].values)
+
+    #Another try with question bank
+    question_bank = pd.read_csv(args.data_folder+args.task+"/question_bank.tsv", sep="\t")
+    all_documents = list(question_bank["question"].values[1:])
 
     cross_datasets = ['clariq']
     cross_data_val_dataloader = {}
@@ -84,7 +93,6 @@ def run_experiment(args):
         valid_cross = valid_cross.drop_duplicates("query")
 
         valid_cross = pd.concat([train_cross, valid_cross])
-        
 
         ns_train_cross = negative_sampling.BM25NegativeSamplerPyserini(all_documents, args.num_ns_train, 
                 args.data_folder+cross_task+"/anserini_train/", args.sample_data, args.anserini_folder)                
