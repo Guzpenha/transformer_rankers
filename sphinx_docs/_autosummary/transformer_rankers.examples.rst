@@ -29,6 +29,7 @@ transformer\_rankers.examples
    :recursive:
 
    transformer_rankers.examples.crr_T5_ranker_example
+   transformer_rankers.examples.crr_bert_cross_task_cross_ns
    transformer_rankers.examples.crr_bert_ranker_example
    transformer_rankers.examples.crr_results_analyses_example
    transformer_rankers.examples.negative_sampling_example

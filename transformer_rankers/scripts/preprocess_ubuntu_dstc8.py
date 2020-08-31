@@ -6,9 +6,18 @@ def main():
                             ("{}/task-1.ubuntu.train.json".format(data_path), "{}/train.tsv".format(data_path))]:
         print("transforming {}".format(f_path))
         data = transform_dstc8_to_tsv(f_path)
-        with open(f_o_path, 'w') as f_write:
-            for l in data:
-                f_write.write(l)
+        if 'dev' in f_path:
+            data_dev, data_test = data[0:len(data)//2], data[len(data)//2:]
+            with open(f_o_path, 'w') as f_write:
+                for l in data_dev:
+                    f_write.write(l)
+            with open("{}/test.tsv".format(data_path), 'w') as f_write:
+                for l in data_test:
+                    f_write.write(l)
+        else:
+            with open(f_o_path, 'w') as f_write:
+                for l in data:
+                    f_write.write(l)
 
 if __name__ == "__main__":
     main()

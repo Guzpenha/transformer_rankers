@@ -38,12 +38,12 @@ def run_experiment(args):
 
     average_relevant_per_query = train.groupby("query").count().mean().values[0]
     #Choose the negative candidate sampler
-    document_col = train.columns[1]
-    ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train[document_col].values), average_relevant_per_query, 
+    question_bank = pd.read_csv(args.data_folder+args.task+"/question_bank.tsv", sep="\t")
+    ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(question_bank["question"].values[1:]), int(average_relevant_per_query), 
             args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
 
-    ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
-                args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
+    ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(question_bank["question"].values[1:]),
+                int(average_relevant_per_query), args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
 
     #Create the loaders for the datasets, with the respective negative samplers
     dataloader = dataset.QueryDocumentDataLoader(train, valid, valid,
@@ -97,7 +97,7 @@ def run_experiment(args):
         ns_train_cross = negative_sampling.BM25NegativeSamplerPyserini(all_documents, args.num_ns_train, 
                 args.data_folder+cross_task+"/anserini_train/", args.sample_data, args.anserini_folder)                
         ns_val_bm25_cross = negative_sampling.BM25NegativeSamplerPyserini(all_documents,
-                        args.num_ns_eval, args.data_folder+cross_task+"/anserini_valid/", args.sample_data, args.anserini_folder) 
+                        50, args.data_folder+cross_task+"/anserini_all/", args.sample_data, args.anserini_folder) 
         dataloader = dataset.QueryDocumentDataLoader(train_cross, valid_cross, valid_cross,
                             tokenizer, ns_train_cross, ns_val_bm25_cross,
                             'classification', args.train_batch_size, 
