@@ -1,6 +1,8 @@
+# first EDIT the scripts (run_sentence_BERT_crr.sh, run_crr_ensemble.sh, run_crr_MC_dropout.sh) to use correct paths
+
 cd transformer_rankers/scripts/
 
-#Download data and train sentenceBERT
+#Download data and train sentenceBERT (for NS)
 ./download_crr_data.sh
 nohup ./run_sentence_BERT_crr.sh > train_sentence_BERT_1_epoch.log &
 

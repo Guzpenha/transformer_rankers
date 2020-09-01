@@ -73,9 +73,20 @@ def main():
             instance.append(had_relevant)
             instance.append(rank_relevant)
         examples.append(instance)
-
+    
     examples_df = pd.DataFrame(examples, columns=examples_cols)
-    examples_df.to_csv(args.output_dir+"/_all_negative_samples_{}.csv".format(args.task), index=False, sep="\t")
+    examples_df.to_csv(args.output_dir+"/_all_negative_samples_{}.csv".format(args.task), index=False, sep="\t")    
+    
+    examples_df["random_set"] = examples_df.apply(lambda r,n_train=args.num_ns_train: set(r[["cand_random_{}".format(i) for i in range(n_train)]]), axis=1)
+    examples_df["bm25_set"] = examples_df.apply(lambda r,n_train=args.num_ns_train: set(r[["cand_bm25_{}".format(i) for i in range(n_train)]]), axis=1)
+    examples_df["sentenceBERT_set"] = examples_df.apply(lambda r,n_train=args.num_ns_train: set(r[["cand_sentenceBERT_{}".format(i) for i in range(n_train)]]), axis=1)
+    examples_df["random_and_bm25"] = examples_df.apply(lambda r: len(r["random_set"].intersection(r["bm25_set"])), axis=1)
+    examples_df["random_and_sentenceBERT"] = examples_df.apply(lambda r: len(r["random_set"].intersection(r["sentenceBERT_set"])), axis=1)
+    examples_df["bm25_and_sentenceBERT"] = examples_df.apply(lambda r: len(r["bm25_set"].intersection(r["sentenceBERT_set"])), axis=1)
+    logging.info("Intersection between random and bm25: {} % ".format(examples_df["random_and_bm25"].mean()*100/args.num_ns_train))
+    logging.info("Intersection between random and sentenceBERT: {} % ".format(examples_df["random_and_sentenceBERT"].mean()*100/args.num_ns_train))
+    logging.info("Intersection between bm25 and sentenceBERT: {} % ".format(examples_df["bm25_and_sentenceBERT"].mean()*100/args.num_ns_train))
 
 if __name__ == "__main__":
     main()
+    
