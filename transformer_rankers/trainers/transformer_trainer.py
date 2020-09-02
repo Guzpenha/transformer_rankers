@@ -25,23 +25,28 @@ class TransformerTrainer():
         num_ns_eval: number of negative samples for evaluation. Used to accumulate the predictions into lists of the appropiate size.
         task_type: str with either 'classification' or 'generation' for SequenceClassification models and ConditionalGeneration models.
         tokenizer: transformer tokenizer.
-        validate_every_epochs: int containing the cycle to calculate validation ndcg.
-        num_validation_batches: number of validation batches to calculate validation ndcg (-1 if all)
+        validate_every_epochs: int containing the number of epochs to calculate validation <validation_metric> when reached. Not used if validate_every_steps is used.
+        num_validation_batches: number of validation batches to use for calculating validation <validation_metric> (-1 if all otherwise the number of samples)
         num_epochs: int containing the number of epochs to train the model (one epoch = one pass on every instance).
         lr: float containing the learning rate.
         sacred_ex: sacred experiment object to log train metrics. None if not to be used.
         max_grad_norm: float indicating the gradient norm to clip.
+        validate_every_steps: int containing the number of steps (batches) to calculate validation <validation_metric> when reached. (-1 if no logging is required)
+        validation_metric: which evaluation metric to use for validation error (e.g. ndcg_cut_10). See transformer_rankers/evaluation for the metrics.
 
     """
     def __init__(self, model, train_loader, val_loader, test_loader,
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
                  num_validation_batches, num_epochs, lr, sacred_ex,
-                 max_grad_norm=0.5):
+                 validate_every_steps=-1, max_grad_norm=0.5, 
+                 validation_metric='ndcg_cut_10'):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
         self.tokenizer = tokenizer
-        self.validate_epochs = validate_every_epochs
+        self.validation_metric = validation_metric
+        self.validate_every_epochs = validate_every_epochs
+        self.validate_every_steps = validate_every_steps
         self.num_validation_batches = num_validation_batches
         self.num_epochs = num_epochs
         self.lr = lr
@@ -55,8 +60,8 @@ class TransformerTrainer():
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
             self.model = nn.DataParallel(self.model, device_ids=devices)
-        
-        self.best_ndcg=0
+
+        self.best_eval_metric=0
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -69,16 +74,22 @@ class TransformerTrainer():
         Trains the transformer-based neural ranker.
         """
         logging.info("Total batches per epoch : {}".format(len(self.train_loader)))
-        logging.info("Validating every {} epoch.".format(self.validate_epochs))        
-        val_ndcg=0
+        if self.validate_every_epochs > 0:
+            logging.info("Validating every {} epoch.".format(self.validate_every_epochs))
+        if self.validate_every_steps > 0:
+            logging.info("Validating every {} step.".format(self.validate_every_steps))
+
+        total_steps=0
         for epoch in range(self.num_epochs):
-            for inputs in tqdm(self.train_loader, desc="Epoch {}".format(epoch), total=len(self.train_loader)):
+            epoch_batches_tqdm = tqdm(self.train_loader, desc="Epoch {}, steps".format(epoch),
+                                      total=len(self.train_loader))
+            for batch_inputs in epoch_batches_tqdm:
                 self.model.train()
 
-                for k, v in inputs.items():
-                    inputs[k] = v.to(self.device)                
+                for k, v in batch_inputs.items():
+                    batch_inputs[k] = v.to(self.device)                
 
-                outputs = self.model(**inputs)
+                outputs = self.model(**batch_inputs)
                 loss = outputs[0] 
 
                 if self.num_gpu > 1:
@@ -90,17 +101,31 @@ class TransformerTrainer():
                                          self.max_grad_norm)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
+                total_steps+=1
 
-            if self.validate_epochs > 0 and epoch % self.validate_epochs == 0:
+                #logging for steps
+                is_validation_step = (self.validate_every_steps > 0 and total_steps % self.validate_every_steps == 0)
+                if is_validation_step:
+                    logits, labels, _ = self.predict(loader = self.val_loader)
+                    res = results_analyses_tools.evaluate_and_aggregate(logits, labels, [self.validation_metric])
+                    val_metric_res = res[self.validation_metric]
+                    if val_metric_res>self.best_eval_metric:
+                        self.best_eval_metric = val_metric_res
+                    if self.sacred_ex != None:
+                        self.sacred_ex.log_scalar(self.validation_metric+"_by_step", val_metric_res, total_steps)
+                    epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
+
+            #logging for epochs
+            is_validation_epoch = (self.validate_every_epochs > 0 and epoch % self.validate_every_epochs == 0)
+            if is_validation_epoch:
                 logits, labels, _ = self.predict(loader = self.val_loader)
-                res = results_analyses_tools.evaluate_and_aggregate(logits, labels, ['ndcg_cut_10'])
-                val_ndcg = res['ndcg_cut_10']
-                if val_ndcg>self.best_ndcg:
-                    self.best_ndcg = val_ndcg
+                res = results_analyses_tools.evaluate_and_aggregate(logits, labels, [self.validation_metric])
+                val_metric_res = res[self.validation_metric]
+                if val_metric_res>self.best_eval_metric:
+                    self.best_eval_metric = val_metric_res
                 if self.sacred_ex != None:
-                    self.sacred_ex.log_scalar('eval_ndcg_10', val_ndcg, epoch+1)                    
-
-            logging.info('Epoch {} val nDCG@10 {:.3f}'.format(epoch + 1, val_ndcg))
+                    self.sacred_ex.log_scalar(self.validation_metric+"_by_epoch", val_metric_res, epoch+1)
+                epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
 
     def predict(self, loader):
         """
@@ -117,7 +142,7 @@ class TransformerTrainer():
         all_logits = []
         all_labels = []
         all_softmax_logits = []
-        for idx, batch in tqdm(enumerate(loader), total=len(loader)):
+        for idx, batch in tqdm(enumerate(loader), total=len(loader), desc="Predicting"):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
 

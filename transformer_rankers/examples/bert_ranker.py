@@ -81,7 +81,8 @@ def run_experiment(args):
     trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
                                  args.num_ns_eval, "classification", tokenizer,
                                  args.validate_every_epochs, args.num_validation_batches,
-                                 args.num_epochs, args.lr, args.sacred_ex)
+                                 args.num_epochs, args.lr, args.sacred_ex, args.validate_every_steps, 
+                                 validation_metric='R_10@1')
 
     #Train
     model_name = model.__class__.__name__
@@ -89,11 +90,11 @@ def run_experiment(args):
     trainer.fit()
 
     #Predict for test
-    logging.info("Predicting")
+    logging.info("Predicting for the validation set.")
     preds, labels, softmax_logits = trainer.test()
     res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
     for metric, v in res.items():
-        logging.info("Test {} : {:4f}".format(metric, v))
+        logging.info("Test {} : {:3f}".format(metric, v))
 
     #Saving predictions and labels to a file
     max_preds_column = max([len(l) for l in preds])
@@ -112,11 +113,11 @@ def run_experiment(args):
 
     #In case we want to get uncertainty estimations at prediction time
     if args.predict_with_uncertainty_estimation:  
-        logging.info("Predicting with dropout.")
+        logging.info("Predicting with MC dropout for the validation set.")
         preds, labels, softmax_logits, foward_passes_preds, uncertainties = trainer.test_with_dropout(args.num_foward_prediction_passes)
         res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
         for metric, v in res.items():
-            logging.info("Test (w. dropout and {} foward passes) {} : {:4f}".format(args.num_foward_prediction_passes, metric, v))
+            logging.info("Test (w. dropout and {} foward passes) {} : {:3f}".format(args.num_foward_prediction_passes, metric, v))
         
         max_preds_column = max([len(l) for l in preds])
         preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
@@ -135,7 +136,7 @@ def run_experiment(args):
         uncertainties_df = pd.DataFrame(uncertainties, columns=["uncertainty_"+str(i) for i in range(max_preds_column)])
         uncertainties_df.to_csv(args.output_dir+"/"+args.run_id+"/uncertainties.csv", index=False)
 
-    return trainer.best_ndcg
+    return trainer.best_eval_metric
 
 def main():
     parser = argparse.ArgumentParser()
@@ -157,8 +158,10 @@ def main():
                         help="Number of epochs for training.")
     parser.add_argument("--max_gpu", default=-1, type=int, required=False,
                         help="max gpu used")
-    parser.add_argument("--validate_every_epochs", default=1, type=int, required=False,
+    parser.add_argument("--validate_every_epochs", default=-1, type=int, required=False,
                         help="Run validation every <validate_every_epochs> epochs.")
+    parser.add_argument("--validate_every_steps", default=1, type=int, required=False,
+                        help="Run validation every <validate_every_steps> steps.")
     parser.add_argument("--num_validation_batches", default=-1, type=int, required=False,
                         help="Run validation for a sample of <num_validation_batches>. To run on all instances use -1.")
     parser.add_argument("--train_batch_size", default=32, type=int, required=False,
