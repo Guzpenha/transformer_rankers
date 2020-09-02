@@ -28,6 +28,9 @@ logging.basicConfig(
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
 
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     #Load datasets
     ## Conversation Response Ranking
@@ -80,7 +83,7 @@ def run_experiment(args):
     #Instantiate trainer that handles fitting.
     trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
                                  args.num_ns_eval, "classification", tokenizer,
-                                 args.validate_every_epochs, args.num_validation_instances,
+                                 args.validate_every_epochs, args.num_validation_batches,
                                  args.num_epochs, args.lr, args.sacred_ex)
 
     #Train
@@ -159,8 +162,8 @@ def main():
                         help="max gpu used")
     parser.add_argument("--validate_every_epochs", default=1, type=int, required=False,
                         help="Run validation every <validate_every_epochs> epochs.")
-    parser.add_argument("--num_validation_instances", default=-1, type=int, required=False,
-                        help="Run validation for a sample of <num_validation_instances>. To run on all instances use -1.")
+    parser.add_argument("--num_validation_batches", default=-1, type=int, required=False,
+                        help="Run validation for a sample of <num_validation_batches>. To run on all instances use -1.")
     parser.add_argument("--train_batch_size", default=32, type=int, required=False,
                         help="Training batch size.")
     parser.add_argument("--val_batch_size", default=32, type=int, required=False,

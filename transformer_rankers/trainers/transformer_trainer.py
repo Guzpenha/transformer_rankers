@@ -15,7 +15,7 @@ class TransformerTrainer():
     """ 
     Performs optimization of the neural models
 
-    Logs nDCG at every num_validation_instances epoch. Uses all the visible GPUs.
+    Logs nDCG at every num_validation_batches epoch. Uses all the visible GPUs.
      
     Args:
         model: the transformer model from transformers library. Both SequenceClassification and ConditionalGeneration are accepted.
@@ -26,7 +26,7 @@ class TransformerTrainer():
         task_type: str with either 'classification' or 'generation' for SequenceClassification models and ConditionalGeneration models.
         tokenizer: transformer tokenizer.
         validate_every_epochs: int containing the cycle to calculate validation ndcg.
-        num_validation_instances: number of validation instances to use (-1 if all)
+        num_validation_batches: number of validation batches to calculate validation ndcg (-1 if all)
         num_epochs: int containing the number of epochs to train the model (one epoch = one pass on every instance).
         lr: float containing the learning rate.
         sacred_ex: sacred experiment object to log train metrics. None if not to be used.
@@ -35,14 +35,14 @@ class TransformerTrainer():
     """
     def __init__(self, model, train_loader, val_loader, test_loader,
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
-                 num_validation_instances, num_epochs, lr, sacred_ex,
+                 num_validation_batches, num_epochs, lr, sacred_ex,
                  max_grad_norm=0.5):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
         self.tokenizer = tokenizer
         self.validate_epochs = validate_every_epochs
-        self.num_validation_instances = num_validation_instances
+        self.num_validation_batches = num_validation_batches
         self.num_epochs = num_epochs
         self.lr = lr
         self.sacred_ex = sacred_ex
@@ -143,7 +143,7 @@ class TransformerTrainer():
                     all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
                     all_softmax_logits+=torch.softmax(both, dim=0)[0].tolist()
 
-            if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
+            if self.num_validation_batches!=-1 and idx > self.num_validation_batches:
                 break
 
         #accumulates per query
@@ -220,7 +220,7 @@ class TransformerTrainer():
                 logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
                 uncertainties += np.array(fwrd_predictions).var(axis=0).tolist()
                 softmax_logits += np.array(fwrd_softmax_predictions).mean(axis=0).tolist()
-            if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
+            if self.num_validation_batches!=-1 and idx > self.num_validation_batches:
                 break
 
         #accumulates per query
@@ -240,7 +240,7 @@ class TransformerTrainer():
         Returns:
             Matrices (logits, labels, softmax_logits)
         """        
-        self.num_validation_instances = -1 # no sample on test.
+        self.num_validation_batches = -1 # no sample on test.
         return self.predict(self.test_loader)
     
     def test_with_dropout(self, foward_passes):
@@ -250,5 +250,5 @@ class TransformerTrainer():
         Returns:
             Matrices (logits, labels, softmax_logits, foward_passes_logits, uncertainties)
         """        
-        self.num_validation_instances = -1 # no sample on test.
+        self.num_validation_batches = -1 # no sample on test.
         return self.predict_with_uncertainty(self.test_loader, foward_passes)

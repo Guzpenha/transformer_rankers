@@ -29,6 +29,9 @@ logging.basicConfig(
 def run_experiment(args):
     args.run_id = str(ex.current_run._id)
 
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     #Load datasets
     add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
@@ -72,7 +75,7 @@ def run_experiment(args):
     trainer = transformer_trainer.TransformerTrainer(model, cross_ns_train["bm25"], 
                                  cross_ns_val["bm25"], cross_ns_val["bm25"], 
                                  args.num_ns_eval, "classification", tokenizer,
-                                 args.validate_every_epochs, args.num_validation_instances,
+                                 args.validate_every_epochs, args.num_validation_batches,
                                  args.num_epochs, args.lr, args.sacred_ex)
 
     #Train
@@ -93,7 +96,7 @@ def run_experiment(args):
                 del config_w['args']['sacred_ex']
             json.dump(config_w, f, indent=4)
         # preds, labels, softmax_logits = trainer.test()
-        trainer.num_validation_instances =-1 # no sample
+        trainer.num_validation_batches =-1 # no sample
         preds, labels, softmax_logits = trainer.predict(cross_ns_val[ns_name])
 
         #Saving predictions and labels to a file
@@ -114,7 +117,7 @@ def run_experiment(args):
         #In case we want to get uncertainty estimations at prediction time
         if args.predict_with_uncertainty_estimation:  
             logging.info("Predicting with dropout.")
-            trainer.num_validation_instances =-1 # no sample
+            trainer.num_validation_batches =-1 # no sample
             preds, labels, softmax_logits, foward_passes_preds, uncertainties = \
                 trainer.predict_with_uncertainty(cross_ns_val[ns_name], args.num_foward_prediction_passes)
             
@@ -166,7 +169,7 @@ def run_experiment(args):
                 del config_w['args']['sacred_ex']
             json.dump(config_w, f, indent=4)
         # preds, labels, softmax_logits = trainer.test()
-        trainer.num_validation_instances =-1 # no sample
+        trainer.num_validation_batches =-1 # no sample
         preds, labels, softmax_logits = trainer.predict(cross_data_val_dataloader[cross_task])
 
         #Saving predictions and labels to a file
@@ -230,8 +233,8 @@ def main():
                         help="max gpu used")
     parser.add_argument("--validate_every_epochs", default=1, type=int, required=False,
                         help="Run validation every <validate_every_epochs> epochs.")
-    parser.add_argument("--num_validation_instances", default=-1, type=int, required=False,
-                        help="Run validation for a sample of <num_validation_instances>. To run on all instances use -1.")
+    parser.add_argument("--num_validation_batches", default=-1, type=int, required=False,
+                        help="Run validation for a sample of <num_validation_batches>. To run on all instances use -1.")
     parser.add_argument("--train_batch_size", default=32, type=int, required=False,
                         help="Training batch size.")
     parser.add_argument("--val_batch_size", default=32, type=int, required=False,
