@@ -32,19 +32,16 @@ def run_experiment(args):
     torch.cuda.manual_seed(args.seed)
 
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
-    #Load datasets
-    ## Conversation Response Ranking
+    # Conversation Response Ranking datasets needs special tokens
     if args.task in ["mantis", "msdialog", "ubuntu_dstc8"]: 
-        add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
-        train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
-        valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
         special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }
-        tokenizer.add_special_tokens(special_tokens_dict)
-    ## Other tasks
-    elif args.task in ["qqp", "linkso", "trec2020pr", "clariq"]:
-        if args.sample_data == -1: args.sample_data=None
-        train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", nrows=args.sample_data)
-        valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t", nrows=args.sample_data)
+        tokenizer.add_special_tokens(special_tokens_dict)        
+
+    #Load datasets
+    train = pd.read_csv(args.data_folder+args.task+"/train_test.tsv", sep="\t", 
+                        nrows=args.sample_data if args.sample_data != -1 else None)
+    valid = pd.read_csv(args.data_folder+args.task+"/valid_test.tsv", sep="\t",
+                        nrows=args.sample_data if args.sample_data != -1 else None)
 
     #Choose the negative candidate sampler
     document_col = train.columns[1]

@@ -13,8 +13,16 @@ A library to conduct ranking experiments with transformers.
 
 
 ## Setup
-Inside a python (>=3.6) virtual enviroment run:
+The following will clone the repo, install a virtual env and install the library with the requirements.
 
+    #Clone the repo
+    git clone https://github.com/Guzpenha/transformer_rankers.git
+    cd transformer_rankers    
+
+    #Optionally use a virtual enviroment
+    python3 -m venv env; source env/bin/activate
+
+    #Optionally use a virtual enviroment
     pip install -e .
     pip install -r requirements.txt
 
@@ -34,6 +42,7 @@ train = preprocess_crr.read_crr_tsv_as_df("{}/{}/train.tsv".format(data_folder, 
 valid = preprocess_crr.read_crr_tsv_as_df("{}/{}/valid.tsv".format(data_folder, task))
 
 #Instantiate random negative samplers (1 for training 9 negative candidates for test)
+# the library also supports BM25 and sentenceBERT negative samplers.
 ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), 1)
 ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + \
     list(train["response"].values), 9)
@@ -61,7 +70,7 @@ model.resize_token_embeddings(len(dataloader.tokenizer))
 trainer = transformer_trainer.TransformerTrainer(model=model,train_loader=train_loader,
                                 val_loader=val_loader, test_loader=test_loader, 
                                 num_ns_eval=9, task_type="classification", tokenizer=tokenizer,
-                                validate_every_epoch=1, num_validation_instances=-1,
+                                validate_every_epoch=1, num_validation_batches=-1,
                                 num_epochs=1, lr=0.0005, sacred_ex=None)
 
 #Train the model
@@ -70,7 +79,7 @@ trainer.fit()
 
 #Predict for test (in our example the validation set)
 logging.info("Predicting")
-preds, labels = trainer.test()
+preds, labels, _ = trainer.test()
 res = results_analyses_tools.\
     evaluate_and_aggregate(preds, labels, ['ndcg_cut_10'])
 
@@ -95,7 +104,7 @@ The output will look like this:
 
 ## Code Organization
 
-### datasets
+### transformer_rankers/datasets
 
 Stores processors for specific datasets as well as code to generate pytorch datasets To download the datasets use *scripts/download_\<task>_data.sh*. Currently implemented processors: 
 
@@ -111,7 +120,7 @@ Note that since we choose the negative sampling on the go, we do not read the ne
 | why do my eyes water | Watering eyes occur if too many tears are produced [...] |
 | why do many substances dissolve in water, but others do not? | Quick Answer. Substances that have ionic molecules [...]| 
 
-### negative_samplers
+### transformer_rankers/negative_samplers
 Currently there is support to query for negative samples using the following approaches:
 - **Random**: Selects a random document.
 - **BM25**: Uses [pyserini](https://github.com/castorini/pyserini/) to do the retrieval with BM25. Requires anserini installation, follow the *Getting Started* section of their [README](https://github.com/castorini/anserini).
@@ -119,29 +128,22 @@ Currently there is support to query for negative samples using the following app
 
 See [negative_sampling_example.py](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/negative_sampling_example.py) for an usage example of the negative samplers.
 
-
-<!-- ### examples
-Examples of using the library such as  to train transformer-based rankers and evaluate the results. -->
-
-### eval
+### transformer_rankers/eval
 Uses trec_eval through [pytrec_eval](https://github.com/cvangysel/pytrec_eval) library to support most IR evaluation metrics, such as NDCG, MAP, MRR, etc. Additional metrics are implemented here, such as Recall_with_n_candidates@K.
 
 
-### trainers
+### transformer_rankers/trainers
 Transformer trainer supports encoder-only transformers, e.g. BERT, and also encoder-decoder transformers, e.g. T5, from the huggingface transformers library, see their pre-trained [models](https://huggingface.co/transformers/pretrained_models.html).
 
-<!-- ### Models -->
-<!-- Currently there is support for transformers for point-wise learning (similar to glue classification tasks) and also generative learning (predicting 'relevant' and 'not_relevant' tokens). For both approaches there is no need to change the huggingface transformers models, e.g. use directly *T5ForConditionalGeneration* or *BertForSequenceClassification*. The query (or conversation context) and document (or response) are concatenated and fed to the transformer model. The documents are then ordered by the logits predictions. -->
-
-<!-- #### Uncertainty Estimation via Monte Carlo Dropout
-Inspired by [*"Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning"*](https://arxiv.org/abs/1506.02142) *transformer-rankers* provides a function that does prediction with dropout at test time to get stochastic predictions of relevance. Such function provides a mean relevance probability and its respective uncertainty, i.e. variance, as opposed to the standard point estimates of relevance produced by deterministic rankers.
-
-```python
-average_logits, uncertainties = trainer.test_with_dropout(num_foward_prediction_passes=10)
-``` -->
-
 ## Experimental Results Examples 
-All results consider the problem of re-ranking from a list of 9 BM25 negative samples and the relevant document.
+All results consider the problem of re-ranking from a list of **9 negative samples (using BM25) and the relevant document**.
+
+### Passage Retrieval (nDCG@10)
+
+|             | TREC-DL-PR 2020|
+|-------------|--------|
+| BERT-ranker | 0.715  |
+
 
 ### Conversation response ranking (R<sub>10</sub>@1)
 
@@ -156,9 +158,3 @@ All results consider the problem of re-ranking from a list of 9 BM25 negative sa
 |-------------|--------|----------|
 | BERT-ranker |  0.536 | 0.658 |
 | T5-ranker |  0.578  |  0.389 |
-
-### Passage Retrieval (nDCG@10)
-
-|             | TREC 2020 Deep Learning PR |
-|-------------|--------|
-| BERT-ranker | 0.715  |

@@ -34,9 +34,10 @@ def run_experiment(args):
 
     tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
     #Load datasets
-    add_turn_separator = (args.task != "ubuntu_dstc8") # Ubuntu data has several utterances from same user in the context.
-    train = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/train.tsv", args.sample_data, add_turn_separator)
-    valid = preprocess_crr.read_crr_tsv_as_df(args.data_folder+args.task+"/valid.tsv", args.sample_data, add_turn_separator)
+    train = pd.read_csv(args.data_folder+args.task+"/train_test.tsv", sep="\t", 
+                        nrows=args.sample_data if args.sample_data != -1 else None)
+    valid = pd.read_csv(args.data_folder+args.task+"/valid_test.tsv", sep="\t",
+                        nrows=args.sample_data if args.sample_data != -1 else None)
     special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }
     tokenizer.add_special_tokens(special_tokens_dict)
 

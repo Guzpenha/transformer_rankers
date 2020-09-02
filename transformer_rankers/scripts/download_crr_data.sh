@@ -33,3 +33,5 @@ mv ubuntu/task-1.ubuntu.dev.json .
 mv ubuntu/task-1.ubuntu.train.json .
 cd ../../transformer_rankers/scripts
 python preprocess_ubuntu_dstc8.py
+
+python preprocess_all_crr_to_df.py
