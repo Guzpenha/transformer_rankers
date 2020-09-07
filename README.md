@@ -126,14 +126,16 @@ Currently there is support to query for negative samples using the following app
 - **BM25**: Uses [pyserini](https://github.com/castorini/pyserini/) to do the retrieval with BM25. Requires anserini installation, follow the *Getting Started* section of their [README](https://github.com/castorini/anserini).
 - **sentenceBERT**: Uses [sentence embeddings](https://github.com/UKPLab/sentence-transformers) to calculate dense representations of the query and candidates, and [faiss](https://github.com/facebookresearch/faiss) is used to do fast retrieval, i.e. dense similarity computation.
 
-See [negative_sampling_example.py](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/negative_sampling_example.py) for an usage example of the negative samplers.
+See [negative_sampling.py](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/negative_sampling.py) for an example of the negative samplers.
 
 ### transformer_rankers/eval
 Uses trec_eval through [pytrec_eval](https://github.com/cvangysel/pytrec_eval) library to support most IR evaluation metrics, such as NDCG, MAP, MRR, etc. Additional metrics are implemented here, such as Recall_with_n_candidates@K.
 
-
 ### transformer_rankers/trainers
 Transformer trainer supports encoder-only transformers, e.g. BERT, and also encoder-decoder transformers, e.g. T5, from the huggingface transformers library, see their pre-trained [models](https://huggingface.co/transformers/pretrained_models.html).
+
+### transformer_rankers/models
+This is the module where you can find different neural ranker implementations. Currently there is suppport for pairwise learning using BERT. See [pairwise_bert_ranker.py](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/pairwise_bert_ranker.py).
 
 ## Experimental Results Examples 
 All results consider the problem of re-ranking from a list of **9 negative samples (using BM25) and the relevant document**.

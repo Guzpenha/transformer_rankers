@@ -87,7 +87,7 @@ class TransformerTrainer():
                 self.model.train()
 
                 for k, v in batch_inputs.items():
-                    batch_inputs[k] = v.to(self.device)                
+                    batch_inputs[k] = v.to(self.device)
 
                 outputs = self.model(**batch_inputs)
                 loss = outputs[0] 
@@ -165,7 +165,7 @@ class TransformerTrainer():
                     both = torch.stack((pred_relevant, pred_not_relevant))
 
                     all_logits+=pred_relevant.tolist()
-                    all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
+                    all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["labels"]]
                     all_softmax_logits+=torch.softmax(both, dim=0)[0].tolist()
 
             if self.num_validation_batches!=-1 and idx > self.num_validation_batches:
@@ -230,7 +230,7 @@ class TransformerTrainer():
                         fwrd_softmax_predictions.append(torch.softmax(batch_logits, dim=1)[:, 1].tolist())
                         foward_passes_logits[i]+=batch_logits[:, 1].tolist()
                 elif self.task_type == "generation":
-                    labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
+                    labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["labels"]]
                     for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, token_logits = outputs[:2]

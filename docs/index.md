@@ -47,6 +47,8 @@ Check our colab for ranking clarifying questions to queries with BERT. The resul
 
 
 ## News
+07-09-2020: Pairwise BERT ranker implemented. Also updated huggingface transformers to 3.1.
+
 10-08-2020: Transformer-rankers was used to generate baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge.
 
 10-07-2020: Get uncertainty estimates, i.e. variance, for rankers relevance predictions with [MC Dropout](https://arxiv.org/abs/1506.02142) at inference time using [*predict_with_uncertainty*](https://guzpenha.github.io/transformer-rankers-doc/html/_autosummary/transformer_rankers.trainers.transformer_trainer.TransformerTrainer.html#transformer_rankers.trainers.transformer_trainer.TransformerTrainer.predict_with_uncertainty).
