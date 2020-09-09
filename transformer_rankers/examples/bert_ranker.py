@@ -13,7 +13,9 @@ import pandas as pd
 import argparse
 import logging
 import sys
+import wandb
 
+wandb.init(project="transformer-ranker-tests")
 ex = Experiment('BERT-ranker experiment')
 
 logging.basicConfig(
@@ -203,6 +205,7 @@ def main():
 
     ex.observers.append(FileStorageObserver(args.output_dir))
     ex.add_config({'args': args})
+    wandb.config.update(args)
     return ex.run()
 
 if __name__ == "__main__":

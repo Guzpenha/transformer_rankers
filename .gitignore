@@ -1,5 +1,6 @@
 env/
 data/
+wandb
 .vscode/launch.json
 
 # Byte-compiled / optimized / DLL files

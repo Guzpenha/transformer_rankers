@@ -1,4 +1,4 @@
-ipython==7.15.0
+ipython
 numpy==1.18.5
 pandas==1.0.4
 pytrec-eval==0.4
@@ -9,7 +9,8 @@ transformers==3.1.0
 scipy==1.4.1
 sentence-transformers==0.2.6.1
 faiss-cpu==1.6.3
-dataclasses
-pyserini
+dataclasses==0.7
+pyserini==0.9.3.1
 wget==3.2
 py7zr==0.9.5
+wandb==0.9.7

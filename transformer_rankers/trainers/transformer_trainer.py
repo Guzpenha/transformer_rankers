@@ -10,6 +10,8 @@ import numpy as np
 import torch.optim as optim
 import functools
 import operator
+import wandb
+import os
 
 class TransformerTrainer():
     """ 
@@ -69,6 +71,13 @@ class TransformerTrainer():
                                     lr=self.lr)
         self.max_grad_norm = max_grad_norm
 
+        #copied from huggingface transformer trainer
+        wandb.ensure_configured()
+        if wandb.api.api_key is None:
+            self._has_wandb = False
+        else:
+            self._has_wandb = False if os.getenv("WANDB_DISABLED") else True
+
     def fit(self):
         """
         Trains the transformer-based neural ranker.
@@ -78,6 +87,8 @@ class TransformerTrainer():
             logging.info("Validating every {} epoch.".format(self.validate_every_epochs))
         if self.validate_every_steps > 0:
             logging.info("Validating every {} step.".format(self.validate_every_steps))
+        if self._has_wandb:
+            wandb.watch(self.model)
 
         total_steps=0
         total_loss=0
@@ -116,6 +127,10 @@ class TransformerTrainer():
                     if self.sacred_ex != None:
                         self.sacred_ex.log_scalar(self.validation_metric+"_by_step", val_metric_res, total_steps)
                         self.sacred_ex.log_scalar("avg_loss_by_step", total_loss/total_steps, total_steps)
+                    if self._has_wandb:
+                        wandb.log({'step': total_steps, self.validation_metric+"_by_step" : val_metric_res})
+                        wandb.log({'step': total_steps, "avg_loss_by_step" : total_loss/total_steps})
+
                     epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
 
             #logging for epochs
@@ -129,6 +144,9 @@ class TransformerTrainer():
                 if self.sacred_ex != None:
                     self.sacred_ex.log_scalar(self.validation_metric+"_by_epoch", val_metric_res, epoch+1)
                     self.sacred_ex.log_scalar("avg_loss_by_epoch", total_loss/total_steps, epoch+1)
+                if self._has_wandb:
+                    wandb.log({'epoch': epoch+1, self.validation_metric+"_by_epoch" : val_metric_res})
+                    wandb.log({'epoch': epoch+1, "avg_loss_by_epoch" : total_loss/total_steps})
                 epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
 
     def predict(self, loader):
