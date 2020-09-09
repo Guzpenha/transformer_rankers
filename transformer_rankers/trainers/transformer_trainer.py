@@ -80,6 +80,7 @@ class TransformerTrainer():
             logging.info("Validating every {} step.".format(self.validate_every_steps))
 
         total_steps=0
+        total_loss=0
         for epoch in range(self.num_epochs):
             epoch_batches_tqdm = tqdm(self.train_loader, desc="Epoch {}, steps".format(epoch),
                                       total=len(self.train_loader))
@@ -96,6 +97,7 @@ class TransformerTrainer():
                     loss = loss.mean() 
 
                 loss.backward()
+                total_loss+=loss.item()
 
                 nn.utils.clip_grad_norm_(self.model.parameters(),
                                          self.max_grad_norm)
@@ -113,6 +115,7 @@ class TransformerTrainer():
                         self.best_eval_metric = val_metric_res
                     if self.sacred_ex != None:
                         self.sacred_ex.log_scalar(self.validation_metric+"_by_step", val_metric_res, total_steps)
+                        self.sacred_ex.log_scalar("avg_loss_by_step", total_loss/total_steps, total_steps)
                     epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
 
             #logging for epochs
@@ -125,6 +128,7 @@ class TransformerTrainer():
                     self.best_eval_metric = val_metric_res
                 if self.sacred_ex != None:
                     self.sacred_ex.log_scalar(self.validation_metric+"_by_epoch", val_metric_res, epoch+1)
+                    self.sacred_ex.log_scalar("avg_loss_by_epoch", total_loss/total_steps, epoch+1)
                 epoch_batches_tqdm.set_description("Epoch {} ({}: {:3f}), steps".format(epoch, self.validation_metric, val_metric_res))
 
     def predict(self, loader):
