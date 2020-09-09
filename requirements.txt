@@ -11,3 +11,4 @@ sentence-transformers==0.2.6.1
 faiss-cpu==1.6.3
 dataclasses
 pyserini
+wget==3.2

@@ -39,9 +39,9 @@ def run_experiment(args):
         tokenizer.add_special_tokens(special_tokens_dict)        
 
     #Load datasets
-    train = pd.read_csv(args.data_folder+args.task+"/train_test.tsv", sep="\t", 
+    train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", 
                         nrows=args.sample_data if args.sample_data != -1 else None)
-    valid = pd.read_csv(args.data_folder+args.task+"/valid_test.tsv", sep="\t",
+    valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t",
                         nrows=args.sample_data if args.sample_data != -1 else None)
 
     #Choose the negative candidate sampler
