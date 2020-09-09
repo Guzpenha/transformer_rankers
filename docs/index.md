@@ -22,7 +22,11 @@ A [library](https://github.com/Guzpenha/transformer_rankers) to conduct ranking 
     pip install -r requirements.txt
 ```
 
-## Example (I): BERT-ranker for retrieving similar questions
+##Colab Examples
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing) Using transformers for learning to rank from a pandas DF.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) Learning to rank clarifying questions with BERT-ranker.
+
+<!-- ## Example (I): BERT-ranker for retrieving similar questions
 
 The task is to rank similar questions to an input question. We download the data and train BERT-ranker (with only 1000 samples to be fast) using one of our example scripts:
 
@@ -43,10 +47,12 @@ Check our documentation for an [example](https://guzpenha.github.io/transformer-
 
 ## Example (III): BERT-ranker for clarifying questions
 
-Check our colab for ranking clarifying questions to queries with BERT. The results are baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing)
+Check our colab for ranking clarifying questions to queries with BERT. The results are baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) -->
 
 
 ## News
+09-09-2020: Easily download and preprocess data for a task with [DataDownloader](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/download_task_data.py). Currently 7 datasets for different retrieval tasks are implemented.
+
 07-09-2020: Pairwise BERT ranker implemented. Also updated huggingface transformers to 3.1.
 
 10-08-2020: Transformer-rankers was used to generate baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge.

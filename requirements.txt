@@ -12,3 +12,4 @@ faiss-cpu==1.6.3
 dataclasses
 pyserini
 wget==3.2
+py7zr==0.9.5
