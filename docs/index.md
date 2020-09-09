@@ -22,7 +22,7 @@ A [library](https://github.com/Guzpenha/transformer_rankers) to conduct ranking 
     pip install -r requirements.txt
 ```
 
-##Colab Examples
+## Colab Examples
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing) Using transformers for learning to rank from a pandas DF.
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) Learning to rank clarifying questions with BERT-ranker.
 
