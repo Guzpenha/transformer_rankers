@@ -33,7 +33,8 @@ def read_crr_tsv_as_df(path, nrows=-1, add_turn_separator=True):
                             context+= utterance + " [TURN_SEP] "
                         else:
                             context+= utterance + " [UTTERANCE_SEP] "
-                df.append([context.strip(), candidate.strip()])
+                if context.strip() != "" and candidate.strip() != "":
+                    df.append([context.strip(), candidate.strip()])
     return pd.DataFrame(df, columns=["context", "response"])
 
 

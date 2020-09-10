@@ -16,7 +16,7 @@ import sys
 import wandb
 
 wandb.init(project="transformer-ranker-tests")
-ex = Experiment('BERT-ranker experiment')
+ex = Experiment('pointwise-BERT-ranker experiment')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -97,6 +97,7 @@ def run_experiment(args):
     res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1'])
     for metric, v in res.items():
         logging.info("Test {} : {:3f}".format(metric, v))
+        wandb.log({'step': 0, "dev_"+metric : v})
 
     #Saving predictions and labels to a file
     max_preds_column = max([len(l) for l in preds])
@@ -202,6 +203,7 @@ def main():
 
     args = parser.parse_args()
     args.sacred_ex = ex
+    args.model = "pointwise-BERT-ranker"
 
     ex.observers.append(FileStorageObserver(args.output_dir))
     ex.add_config({'args': args})

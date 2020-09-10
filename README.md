@@ -27,26 +27,33 @@ The following will clone the repo, install a virtual env and install the library
     pip install -r requirements.txt
 
 ## Example: BERT-ranker for dialogue
-The following example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus. See other examples, for instance how to use T5 for this task in [*transformer_ranker/examples/*](https://github.com/Guzpenha/transformer_rankers/tree/master/transformer_rankers/examples).
+The following example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus. We can download the data as follows:
 
+```python
+from transformer_rankers.datasets import downloader
+
+#Download the data with DataDownloader
+data_folder = "data"
+dataDownloader = downloader.DataDownloader("mantis", data_folder)
+dataDownloader.download_and_preprocess()
+```
+And train BERT for pointwise learning to rank with randomly sampled negative samples:
 ```python
 from transformer_rankers.trainers import transformer_trainer
 from transformer_rankers.datasets import dataset, preprocess_crr
 from transformer_rankers.negative_samplers import negative_sampling 
 from transformer_rankers.eval import results_analyses_tools
 
-#Read dataset
-data_folder = "data"
+#Load the dataset
 task = "mantis"
-train = preprocess_crr.read_crr_tsv_as_df("{}/{}/train.tsv".format(data_folder, task))
-valid = preprocess_crr.read_crr_tsv_as_df("{}/{}/valid.tsv".format(data_folder, task))
+train = pd.read_csv(data_folder+task+"/train.tsv", sep="\t")
+valid = pd.read_csv(data_folder+task+"/valid.tsv", sep="\t")
 
 #Instantiate random negative samplers (1 for training 9 negative candidates for test)
 # the library also supports BM25 and sentenceBERT negative samplers.
 ns_train = negative_sampling.RandomNegativeSampler(list(train["response"].values), 1)
 ns_val = negative_sampling.RandomNegativeSampler(list(valid["response"].values) + \
     list(train["response"].values), 9)
-
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
 special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }
@@ -61,7 +68,7 @@ dataloader = dataset.QueryDocumentDataLoader(train_df=train, val_df=valid, test_
 
 train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
 
-#Use BERT to rank responses
+
 model = BertForSequenceClassification.from_pretrained('bert-base-cased')
 # we added [UTTERANCE_SEP] and [TURN_SEP] to the vocabulary so we need to resize the token embeddings
 model.resize_token_embeddings(len(dataloader.tokenizer)) 
@@ -95,6 +102,7 @@ The output will look like this:
     2020-06-23 11:19:44,523 [INFO] Starting evaluation on test.
     2020-06-23 11:20:03,678 [INFO] Test ndcg_cut_10: 0.3236
 
+If you login to [wandb](https://app.wandb.ai/home), the trainer will handle logging loss and validation metrics to it.
 
 ## Colab examples
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing) Fine-tune different transformers for a dataset in pandas DataFrame format. 

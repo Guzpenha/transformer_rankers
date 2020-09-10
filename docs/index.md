@@ -10,16 +10,16 @@ A [library](https://github.com/Guzpenha/transformer_rankers) to conduct ranking 
 
 ## Setup
 ```bash
-    #Clone the repo
-    git clone https://github.com/Guzpenha/transformer_rankers.git
-    cd transformer_rankers    
+#Clone the repo
+git clone https://github.com/Guzpenha/transformer_rankers.git
+cd transformer_rankers    
 
-    #Optionally use a virtual enviroment
-    python3 -m venv env; source env/bin/activate    
+#Optionally use a virtual enviroment
+python3 -m venv env; source env/bin/activate    
 
-    #Install the library and the requirements.
-    pip install -e .
-    pip install -r requirements.txt
+#Install the library and the requirements.
+pip install -e .
+pip install -r requirements.txt
 ```
 
 ## Colab Examples
@@ -53,7 +53,7 @@ Check our colab for ranking clarifying questions to queries with BERT. The resul
 ## News
 09-09-2020: Easily download and preprocess data for a task with [DataDownloader](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/download_task_data.py). Currently 7 datasets for different retrieval tasks are implemented.
 
-07-09-2020: Pairwise BERT ranker implemented. Also updated huggingface transformers to 3.1.
+07-09-2020: [Pairwise BERT](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/models/pairwise_bert.py) ranker implemented. Also updated huggingface transformers to 3.1.
 
 10-08-2020: Transformer-rankers was used to generate baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge.
 

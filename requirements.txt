@@ -9,7 +9,7 @@ transformers==3.1.0
 scipy==1.4.1
 sentence-transformers==0.2.6.1
 faiss-cpu==1.6.3
-dataclasses==0.7
+dataclasses
 pyserini==0.9.3.1
 wget==3.2
 py7zr==0.9.5
