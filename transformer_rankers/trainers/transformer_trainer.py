@@ -94,7 +94,15 @@ class TransformerTrainer():
         total_steps=0
         total_loss=0
         total_instances=0
-        for epoch in range(self.num_epochs):
+
+        if self.num_training_instances == -1:
+            actual_epochs = self.num_epochs
+        else:
+            instances_in_one_epoch = len(self.train_loader) * self.train_loader.batch_size
+            actual_epochs =  -(-self.num_training_instances // instances_in_one_epoch) # rounding up
+            logging.info("Actual epochs (rounded up): {}".format(actual_epochs))
+        
+        for epoch in range(actual_epochs):
             epoch_batches_tqdm = tqdm(self.train_loader, desc="Epoch {}, steps".format(epoch),
                                       total=len(self.train_loader))
             for batch_inputs in epoch_batches_tqdm:
