@@ -16,16 +16,17 @@ import logging
 import sys
 import wandb
 
-wandb.init(project="transformer-ranker-tests")
-ex = Experiment('pairwise-BERT-ranker experiment')
+logging_level = logging.INFO
+logging_fmt = "%(asctime)s [%(levelname)s] %(message)s"
+try:
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging_level)
+    root_handler = root_logger.handlers[0]
+    root_handler.setFormatter(logging.Formatter(logging_fmt))
+except IndexError:
+    logging.basicConfig(level=logging_level, format=logging_fmt)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+ex = Experiment('pairwise-BERT-ranker experiment')
 
 @ex.main
 def run_experiment(args):
@@ -160,6 +161,8 @@ def main():
                         help="random seed")
     parser.add_argument("--num_epochs", default=100, type=int, required=False,
                         help="Number of epochs for training.")
+    parser.add_argument("--num_training_instances", default=-1, type=int, required=False,
+                        help="Number of training instances for training (if num_training_instances != -1 then num_epochs is ignored).")
     parser.add_argument("--max_gpu", default=-1, type=int, required=False,
                         help="max gpu used")
     parser.add_argument("--validate_every_epochs", default=-1, type=int, required=False,
@@ -202,12 +205,18 @@ def main():
                         help="Number of foward passes with dropout to obtain mean and variance of predictions. "+
                              "Only used if predict_with_uncertainty_estimation == True.")
 
+    #Wandb loggging config
+    parser.add_argument("--wandb_project", default="wandb-local-run", type=str, required=False,
+            help="Wandb project to log.")
+
     args = parser.parse_args()
     args.sacred_ex = ex
     args.model = "pairwise-BERT-ranker"
 
     ex.observers.append(FileStorageObserver(args.output_dir))
     ex.add_config({'args': args})
+
+    wandb.init(project=args.wandb_project)
     wandb.config.update(args)    
     return ex.run()
 

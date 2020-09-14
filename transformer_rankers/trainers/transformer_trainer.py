@@ -41,7 +41,7 @@ class TransformerTrainer():
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
                  num_validation_batches, num_epochs, lr, sacred_ex,
                  validate_every_steps=-1, max_grad_norm=0.5, 
-                 validation_metric='ndcg_cut_10'):
+                 validation_metric='ndcg_cut_10', num_training_instances=-1):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
@@ -53,6 +53,7 @@ class TransformerTrainer():
         self.num_epochs = num_epochs
         self.lr = lr
         self.sacred_ex = sacred_ex
+        self.num_training_instances=num_training_instances
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -92,6 +93,7 @@ class TransformerTrainer():
 
         total_steps=0
         total_loss=0
+        total_instances=0
         for epoch in range(self.num_epochs):
             epoch_batches_tqdm = tqdm(self.train_loader, desc="Epoch {}, steps".format(epoch),
                                       total=len(self.train_loader))
@@ -115,6 +117,11 @@ class TransformerTrainer():
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 total_steps+=1
+                total_instances+= batch_inputs[k].shape[0]                
+
+                if self.num_training_instances != -1 and total_instances >= self.num_training_instances:
+                    logging.info("Reached num_training_instances of {} ({} batches). Early stopping.".format(self.num_training_instances, total_steps))
+                    break
 
                 #logging for steps
                 is_validation_step = (self.validate_every_steps > 0 and total_steps % self.validate_every_steps == 0)

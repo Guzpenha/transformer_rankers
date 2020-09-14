@@ -15,16 +15,17 @@ import logging
 import sys
 import wandb
 
-wandb.init(project="transformer-ranker-tests")
-ex = Experiment('pointwise-BERT-ranker experiment')
+logging_level = logging.INFO
+logging_fmt = "%(asctime)s [%(levelname)s] %(message)s"
+try:
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging_level)
+    root_handler = root_logger.handlers[0]
+    root_handler.setFormatter(logging.Formatter(logging_fmt))
+except IndexError:
+    logging.basicConfig(level=logging_level, format=logging_fmt)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+ex = Experiment('pointwise-BERT-ranker experiment')
 
 @ex.main
 def run_experiment(args):
@@ -84,7 +85,7 @@ def run_experiment(args):
                                  args.num_ns_eval, "classification", tokenizer,
                                  args.validate_every_epochs, args.num_validation_batches,
                                  args.num_epochs, args.lr, args.sacred_ex, args.validate_every_steps, 
-                                 validation_metric='R_10@1')
+                                 validation_metric='R_10@1', num_training_instances=args.num_training_instances)
 
     #Train
     model_name = model.__class__.__name__
@@ -158,7 +159,9 @@ def main():
     parser.add_argument("--seed", default=42, type=str, required=False,
                         help="random seed")
     parser.add_argument("--num_epochs", default=100, type=int, required=False,
-                        help="Number of epochs for training.")
+                        help="Number of epochs for training (if num_training_instances != -1 then num_epochs is ignored).")
+    parser.add_argument("--num_training_instances", default=-1, type=int, required=False,
+                        help="Number of training instances for training (if num_training_instances != -1 then num_epochs is ignored).")
     parser.add_argument("--max_gpu", default=-1, type=int, required=False,
                         help="max gpu used")
     parser.add_argument("--validate_every_epochs", default=-1, type=int, required=False,
@@ -182,7 +185,7 @@ def main():
     parser.add_argument("--test_negative_sampler", default="random", type=str, required=False,
                         help="Negative candidates sampler for training (['random', 'bm25', 'sentenceBERT']) ")
     parser.add_argument("--bert_sentence_model", default="bert-base-nli-stsb-mean-tokens", type=str, required=False,
-                        help="Pre-trained sentenceBERT model.")
+                        help="Pre-trained sentenceBERT model (used for NegativeSampling when NS=sentenceBERT).")
     parser.add_argument("--anserini_folder", default="", type=str, required=False,
                         help="Path containing the anserini bin <anserini_folder>/target/appassembler/bin/IndexCollection")
 
@@ -201,13 +204,19 @@ def main():
                         help="Number of foward passes with dropout to obtain mean and variance of predictions. "+
                              "Only used if predict_with_uncertainty_estimation == True.")
 
+    #Wandb loggging config
+    parser.add_argument("--wandb_project", default="wandb-local-run", type=str, required=False,
+            help="Wandb project to log.")
+
     args = parser.parse_args()
     args.sacred_ex = ex
     args.model = "pointwise-BERT-ranker"
 
     ex.observers.append(FileStorageObserver(args.output_dir))
     ex.add_config({'args': args})
-    wandb.config.update(args)
+
+    wandb.init(project=args.wandb_project)
+    wandb.config.update(args)   
     return ex.run()
 
 if __name__ == "__main__":
