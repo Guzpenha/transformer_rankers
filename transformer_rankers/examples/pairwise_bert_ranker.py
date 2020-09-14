@@ -86,7 +86,7 @@ def run_experiment(args):
                                  args.num_ns_eval, "classification", tokenizer,
                                  args.validate_every_epochs, args.num_validation_batches,
                                  args.num_epochs, args.lr, args.sacred_ex, args.validate_every_steps, 
-                                 validation_metric='R_10@1')
+                                 validation_metric='R_10@1', num_training_instances=args.num_training_instances)
 
     #Train
     model_name = model.__class__.__name__
