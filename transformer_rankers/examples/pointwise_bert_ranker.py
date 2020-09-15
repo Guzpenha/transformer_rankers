@@ -2,6 +2,7 @@ from transformer_rankers.trainers import transformer_trainer
 from transformer_rankers.datasets import dataset, preprocess_crr, preprocess_sqr
 from transformer_rankers.negative_samplers import negative_sampling 
 from transformer_rankers.eval import results_analyses_tools
+from transformer_rankers.models import pointwise_bert
 
 from transformers import BertTokenizer, BertForSequenceClassification
 from sacred.observers import FileStorageObserver
@@ -77,7 +78,9 @@ def run_experiment(args):
 
 
     #Instantiate transformer model to be used
-    model = BertForSequenceClassification.from_pretrained(args.transformer_model)
+    model = pointwise_bert.BertForPointwiseLearning.from_pretrained(args.transformer_model,
+            loss_function=args.loss_function)
+
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
     #Instantiate trainer that handles fitting.
@@ -196,6 +199,8 @@ def main():
                         help="Maximum sequence length for the inputs.")
     parser.add_argument("--lr", default=5e-6, type=float, required=False,
                         help="Learning rate.")
+    parser.add_argument("--loss_function", default="cross-entropy", type=str, required=False,
+                        help="Loss function (default is 'cross-entropy').")
 
     #Uncertainty estimation hyperparameters
     parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,

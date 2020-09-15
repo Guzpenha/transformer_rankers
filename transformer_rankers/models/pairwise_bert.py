@@ -1,5 +1,5 @@
 from transformers import modeling_bert
-from transformers import modeling_outputs
+from transformer_rankers.models.losses import label_smoothing
 from torch import nn
 from IPython import embed
 
@@ -10,7 +10,7 @@ class BertForPairwiseLearning(modeling_bert.BertPreTrainedModel):
     scores (labels are 1 if score positive_neg > score negative_doc otherwise 0) based on 
     "Learning to Rank using Gradient Descent" 2005 ICML.
     """
-    def __init__(self, config):
+    def __init__(self, config, loss_function="cross-entropy"):
         super().__init__(config)
 
         #There should be at least relevant and non relevant options.
@@ -18,6 +18,11 @@ class BertForPairwiseLearning(modeling_bert.BertPreTrainedModel):
         self.bert = modeling_bert.BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, self.num_labels)
+
+        if loss_function == "cross-entropy":
+            self.loss_fct = nn.CrossEntropyLoss()
+        elif loss_function == "label-smoothing-cross-entropy":
+            self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy()
 
         self.init_weights()
 
@@ -57,8 +62,7 @@ class BertForPairwiseLearning(modeling_bert.BertPreTrainedModel):
         # based on "Learning to Rank using Gradient Descent" 2005 ICML
         loss = None
         if labels is not None:
-            loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(logits_diff.view(-1, self.num_labels), labels.view(-1))
+            loss = self.loss_fct(logits_diff.view(-1, self.num_labels), labels.view(-1))
 
         output = (logits_pos,) + outputs_pos[2:]
         return ((loss,) + output) if loss is not None else output

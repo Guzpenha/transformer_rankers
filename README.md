@@ -14,18 +14,19 @@ A library to conduct ranking experiments with transformers.
 
 ## Setup
 The following will clone the repo, install a virtual env and install the library with the requirements.
+```bash
+#Clone the repo
+git clone https://github.com/Guzpenha/transformer_rankers.git
+cd transformer_rankers    
 
-    #Clone the repo
-    git clone https://github.com/Guzpenha/transformer_rankers.git
-    cd transformer_rankers    
+#Optionally use a virtual enviroment
+python3 -m venv env
+source env/bin/activate
 
-    #Optionally use a virtual enviroment
-    python3 -m venv env; source env/bin/activate
-
-    #Optionally use a virtual enviroment
-    pip install -e .
-    pip install -r requirements.txt
-
+#Optionally use a virtual enviroment
+pip install -e .
+pip install -r requirements.txt
+```
 ## Example: BERT-ranker for dialogue
 The following example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus. We can download the data as follows:
 

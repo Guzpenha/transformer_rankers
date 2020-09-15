@@ -26,31 +26,9 @@ pip install -r requirements.txt
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing) Using transformers for learning to rank from a pandas DF.
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) Learning to rank clarifying questions with BERT-ranker.
 
-<!-- ## Example (I): BERT-ranker for retrieving similar questions
-
-The task is to rank similar questions to an input question. We download the data and train BERT-ranker (with only 1000 samples to be fast) using one of our example scripts:
-
-```bash
-    cd transformer_rankers/scripts
-    ./download_sqr_data.sh
-
-    python ../examples/crr_bert_ranker_example.py \
-        --task qqp \
-        --data_folder ../../data/ \
-        --output_dir ../../data/output_data \
-        --sample_data 1000
-```
-
-## Example (II): Different transformers for a custom Pandas dataset
-Check our documentation for an [example](https://guzpenha.github.io/transformer-rankers-doc/html/quick-start.html#example-ii-custom-dataset) with a custom dataset. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h6N7uGMFWS5n5y95bUmxUdgPcVSU0xNu?usp=sharing)
-
-
-## Example (III): BERT-ranker for clarifying questions
-
-Check our colab for ranking clarifying questions to queries with BERT. The results are baselines for the [ClariQ](https://github.com/aliannejadi/ClariQ) challenge. [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1RHHbh5KQY-QDA7kV7wyHFJ7B_w5RRHzP?usp=sharing) -->
-
-
 ## News
+15-09-2020: Cross Entropy [label smoothing](https://arxiv.org/pdf/1512.00567.pdf) was implemented as a loss function for learning to rank BERT models.
+
 09-09-2020: Easily download and preprocess data for a task with [DataDownloader](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/examples/download_task_data.py). Currently 7 datasets for different retrieval tasks are implemented.
 
 07-09-2020: [Pairwise BERT](https://github.com/Guzpenha/transformer_rankers/blob/master/transformer_rankers/models/pairwise_bert.py) ranker implemented. Also updated huggingface transformers to 3.1.
