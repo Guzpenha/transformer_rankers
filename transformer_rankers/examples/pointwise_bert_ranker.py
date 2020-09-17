@@ -79,7 +79,7 @@ def run_experiment(args):
 
     #Instantiate transformer model to be used
     model = pointwise_bert.BertForPointwiseLearning.from_pretrained(args.transformer_model,
-            loss_function=args.loss_function)
+            loss_function=args.loss_function, smoothing=args.smoothing)
 
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
@@ -201,6 +201,8 @@ def main():
                         help="Learning rate.")
     parser.add_argument("--loss_function", default="cross-entropy", type=str, required=False,
                         help="Loss function (default is 'cross-entropy').")
+    parser.add_argument("--smoothing", default=0.1, type=float, required=False,
+                        help="Smoothing hyperparameter used only if loss_function is label-smoothing-cross-entropy.")
 
     #Uncertainty estimation hyperparameters
     parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,

@@ -10,7 +10,7 @@ class BertForPairwiseLearning(modeling_bert.BertPreTrainedModel):
     scores (labels are 1 if score positive_neg > score negative_doc otherwise 0) based on 
     "Learning to Rank using Gradient Descent" 2005 ICML.
     """
-    def __init__(self, config, loss_function="cross-entropy"):
+    def __init__(self, config, loss_function="cross-entropy", smoothing=0.1):
         super().__init__(config)
 
         #There should be at least relevant and non relevant options.
@@ -22,7 +22,7 @@ class BertForPairwiseLearning(modeling_bert.BertPreTrainedModel):
         if loss_function == "cross-entropy":
             self.loss_fct = nn.CrossEntropyLoss()
         elif loss_function == "label-smoothing-cross-entropy":
-            self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy()
+            self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy(smoothing)
 
         self.init_weights()
 

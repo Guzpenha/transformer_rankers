@@ -9,7 +9,7 @@ class BertForPointwiseLearning(modeling_bert.BertPreTrainedModel):
     huggingface's BertForSequenceClassification, for the case when num_labels >1 
     (classification).
     """
-    def __init__(self, config, loss_function="cross-entropy"):
+    def __init__(self, config, loss_function="cross-entropy", smoothing=0.1):
         super().__init__(config)
 
         #There should be at least relevant and non relevant options (>2).
@@ -22,7 +22,7 @@ class BertForPointwiseLearning(modeling_bert.BertPreTrainedModel):
         if loss_function == "cross-entropy":
             self.loss_fct = nn.CrossEntropyLoss()
         elif loss_function == "label-smoothing-cross-entropy":
-            self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy()
+            self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy(smoothing)
 
         self.init_weights()
 
