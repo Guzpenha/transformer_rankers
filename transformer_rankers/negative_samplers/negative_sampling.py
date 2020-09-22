@@ -63,7 +63,7 @@ class RandomNegativeSampler():
 
         while len(sampled) != self.num_candidates_samples:
             sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d not in relevant_docs]
-        return sampled, [random.uniform(0, 0.99) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
+        return sampled, [random.uniform(0, 0.49) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
 
 if PYSERINI_USABLE:
     class BM25NegativeSamplerPyserini():
@@ -170,7 +170,7 @@ if PYSERINI_USABLE:
                     sampled = sampled + \
                         [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                             if d not in relevant_docs]
-            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
+            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
             
             normalized_scores = list(normalized_scores) + scores_for_random
             return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank
@@ -283,12 +283,12 @@ class SentenceBERTNegativeSampler():
                 sampled.append(d)
                 scores.append(distances[i])
 
-        scores_for_random=[random.uniform(0, 0.99) for i in range(self.num_candidates_samples-len(sampled))]
+        scores_for_random=[random.uniform(0, 0.49) for i in range(self.num_candidates_samples-len(sampled))]
         while len(sampled) != self.num_candidates_samples: 
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d not in relevant_docs]
-        normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
+        normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
         
         normalized_scores = 1-normalized_scores # similarity instead of distances.
         normalized_scores = list(normalized_scores) + scores_for_random
