@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer
+from sklearn import preprocessing
 from IPython import embed
 
 import numpy as np
@@ -45,10 +46,9 @@ class RandomNegativeSampler():
             query_str: the str of the query. Not used here.
             relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
 
-        Returns:
-            A triplet containing the list of negative samples, 
-            whether the method had retrieved the relevant doc and 
-            if yes its rank in the list.
+        Returns:            
+             First the sampled_documents, their respective scores and then indicators if the NS retrieved the relevant
+             document, and if so at which position.
         """
         sampled_initial = random.sample(self.candidates, self.num_candidates_samples)
         was_relevant_sampled = False
@@ -63,7 +63,7 @@ class RandomNegativeSampler():
 
         while len(sampled) != self.num_candidates_samples:
             sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d not in relevant_docs]
-        return sampled, was_relevant_sampled, relevant_doc_rank
+        return sampled, [random.uniform(0, 0.99) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
 
 if PYSERINI_USABLE:
     class BM25NegativeSamplerPyserini():
@@ -146,29 +146,34 @@ if PYSERINI_USABLE:
                 max_query_len: int containing the maximum number of characters to use as input. (Very long queries will raise a maxClauseCount from anserini.)                
 
             Returns:
-                A triplet containing the list of negative samples, 
-                whether the method had retrieved the relevant doc and 
-                if yes its rank in the list.
+                First the sampled_documents, their respective scores and then indicators if the NS retrieved the relevant
+                document, and if so at which position.
             """
             #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
             query_str = query_str[-max_query_len:]
-            sampled_initial = [ hit.raw for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
-
+            sampled_initial = [ (hit.raw, hit.score) for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
             was_relevant_sampled = False
             relevant_doc_rank = -1
             sampled = []
-            for i, d in enumerate(sampled_initial):
-                if d in relevant_docs:
+            scores = []
+            for i, ds in enumerate(sampled_initial):
+                doc, score = d
+                if doc in relevant_docs:
                     was_relevant_sampled = True
                     relevant_doc_rank = i
                 else:
-                    sampled.append(d)
+                    sampled.append(doc)
+                    scores.append(score)
 
-            while len(sampled) != self.num_candidates_samples:
+            scores_for_random=[random.uniform(0,1) for i in range(self.num_candidates_samples-len(sampled))]
+            while len(sampled) != self.num_candidates_samples: 
                     sampled = sampled + \
                         [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                             if d not in relevant_docs]
-            return sampled, was_relevant_sampled, relevant_doc_rank
+            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
+            
+            normalized_scores = list(normalized_scores) + scores_for_random
+            return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank
 
 else:
      class BM25NegativeSamplerPyserini():
@@ -257,27 +262,34 @@ class SentenceBERTNegativeSampler():
             relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
             
         Returns:
-            A triplet containing the list of negative samples, 
-            whether the method had retrieved the relevant doc and 
-            if yes its rank in the list.
+            First the sampled_documents, their respective scores and then indicators if the NS retrieved the relevant
+            document, and if so at which position.
         """
         query_embedding = self.model.encode([query_str], show_progress_bar=False)
         
-        distances, idxs = self.index.search(np.array(query_embedding), self.num_candidates_samples)        
+        distances, idxs = self.index.search(np.array(query_embedding), self.num_candidates_samples)
         sampled_initial = [self.candidates[idx] for idx in idxs[0]]
-        
+        distances = distances[0]
+
         was_relevant_sampled = False
         relevant_doc_rank = -1
         sampled = []
+        scores = []
         for i, d in enumerate(sampled_initial):
             if d in relevant_docs:
                 was_relevant_sampled = True
                 relevant_doc_rank = i
             else:
                 sampled.append(d)
+                scores.append(distances[i])
 
+        scores_for_random=[random.uniform(0, 0.99) for i in range(self.num_candidates_samples-len(sampled))]
         while len(sampled) != self.num_candidates_samples: 
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d not in relevant_docs]
-        return sampled, was_relevant_sampled, relevant_doc_rank
+        normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
+        
+        normalized_scores = 1-normalized_scores # similarity instead of distances.
+        normalized_scores = list(normalized_scores) + scores_for_random
+        return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank

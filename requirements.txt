@@ -5,7 +5,7 @@ pytrec-eval==0.4
 sacred==0.8.1
 torch==1.5.0
 tqdm==4.46.1
-transformers==3.1.0
+transformers==3.0.2
 scipy==1.4.1
 sentence-transformers==0.2.6.1
 faiss-cpu==1.6.3

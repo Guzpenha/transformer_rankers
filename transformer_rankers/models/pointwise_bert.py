@@ -23,7 +23,8 @@ class BertForPointwiseLearning(modeling_bert.BertPreTrainedModel):
             self.loss_fct = nn.CrossEntropyLoss()
         elif loss_function == "label-smoothing-cross-entropy":
             self.loss_fct = label_smoothing.LabelSmoothingCrossEntropy(smoothing)
-
+        elif loss_function == "ws-label-smoothing-cross-entropy":
+            self.loss_fct = label_smoothing.WeaklySupervisedLabelSmoothingCrossEntropy(smoothing)
         self.init_weights()
 
     def forward(

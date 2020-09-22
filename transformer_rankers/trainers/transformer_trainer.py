@@ -187,7 +187,7 @@ class TransformerTrainer():
                 if self.task_type == "classification":
                     outputs = self.model(**batch)
                     _, logits = outputs[:2]
-                    all_labels+=batch["labels"].tolist()
+                    all_labels+=batch["labels"].int().tolist() # this is required because of the weak supervision
                     all_logits+=logits[:, 1].tolist()
                     all_softmax_logits+=torch.softmax(logits, dim=1)[:, 1].tolist()
 
@@ -258,7 +258,7 @@ class TransformerTrainer():
                 fwrd_predictions = []
                 fwrd_softmax_predictions = []
                 if self.task_type == "classification":                    
-                    labels+= batch["labels"].tolist()
+                    labels+=batch["labels"].int().tolist()
                     for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, batch_logits = outputs[:2]

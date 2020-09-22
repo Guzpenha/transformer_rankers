@@ -205,7 +205,7 @@ class QueryDocumentDataset(data.Dataset):
                 relevant_documents = row[1]
                 for relevant_document in relevant_documents:
                     examples.append((query, relevant_document))
-                ns_candidates, _, _ = self.negative_sampler.sample(query, relevant_documents)                
+                ns_candidates, _ , _ , _ = self.negative_sampler.sample(query, relevant_documents)
                 for ns in ns_candidates:
                     examples.append((query, ns))
 
@@ -362,7 +362,7 @@ class QueryPosDocNegDocDataset(data.Dataset):
             for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
                 query = row[0]
                 relevant_documents = row[1]
-                ns_candidates, _, _ = self.negative_sampler.sample(query, relevant_documents)                
+                ns_candidates, _ ,  _ , _ = self.negative_sampler.sample(query, relevant_documents)                
                 for rel_doc in relevant_documents:
                     if self.data_partition == 'train':
                         for ns_doc in ns_candidates:
@@ -402,6 +402,155 @@ class QueryPosDocNegDocDataset(data.Dataset):
                 logging.info("Set {} Instance {} rel document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
                 logging.info("Set {} Instance {} ns document \n\n{}\n".format(self.data_partition, idx, examples[idx][2][0:200]))
                 # logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
+            with open(path, 'wb') as f:
+                pickle.dump(self.instances, f)
+
+        logging.info("Total of {} instances were cached.".format(len(self.instances)))
+
+    def __len__(self):
+        return len(self.instances)
+
+    def __getitem__(self, index):
+        return self.instances[index]
+
+class WeaklySupervisedQueryDocumentDataLoader(AbstractDataloader):
+    def __init__(self, train_df, val_df, test_df, tokenizer,
+                 negative_sampler_train, negative_sampler_val, task_type,
+                 train_batch_size, val_batch_size, max_seq_len, sample_data,
+                 cache_path):
+        super().__init__(train_df, val_df, test_df, tokenizer,
+                 negative_sampler_train, negative_sampler_val, task_type,
+                 train_batch_size, val_batch_size, max_seq_len, sample_data,
+                 cache_path)
+    
+        self.data_collator = default_data_collator
+
+    def get_pytorch_dataloaders(self):
+        train_loader = self._get_train_loader()
+        val_loader = self._get_val_loader()
+        test_loader = self._get_test_loader()
+        return train_loader, val_loader, test_loader
+
+    def _get_train_loader(self):
+        dataset = WeaklySupervisedQueryDocumentDataset(self.train_df, self.tokenizer,'train',
+                             self.negative_sampler_train, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
+        dataloader = data.DataLoader(dataset,
+                                     batch_size=self.actual_train_batch_size,
+                                     shuffle=True,
+                                     collate_fn=self.data_collator)
+        return dataloader
+
+    def _get_val_loader(self):
+        dataset = WeaklySupervisedQueryDocumentDataset(self.val_df, self.tokenizer, 'val', 
+                            self.negative_sampler_val, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
+        dataloader = data.DataLoader(dataset,
+                                     batch_size=self.val_batch_size,
+                                     shuffle=False,
+                                     collate_fn=self.data_collator)
+        return dataloader
+
+    def _get_test_loader(self):
+        dataset = WeaklySupervisedQueryDocumentDataset(self.test_df, self.tokenizer, 'test', 
+                             self.negative_sampler_val, self.task_type,
+                             self.max_seq_len, self.sample_data, self.cache_path)
+        dataloader = data.DataLoader(dataset,
+                                     batch_size=self.val_batch_size,
+                                     shuffle=False,
+                                     collate_fn=self.data_collator)
+        return dataloader
+
+class WeaklySupervisedQueryDocumentDataset(data.Dataset):
+    """
+    Dataset for pointwise learning with <Query,Document> pairs with Weak Supervision.
+    The weak supervision is determined by the negative_sampler scores and it is 
+    only applied to the negative sampled documents.
+
+    For example, if negative_sampler = bm25, the scores of the negative samples will be
+    the bm25 score of that negative sample instead of 0.
+
+    No generative models, e.g. T5, are supported here. 
+    
+    IMPORTANT:All weak supervision coming from the NS must not include labels 1. 
+    Weak supervision has to be (0--1]. This is because in other modules we assume
+    everything that is <1 to be label 0, including evaluation.
+    """
+    def __init__(self, data, tokenizer, data_partition, 
+                negative_sampler, task_type, max_seq_len, sample_data,
+                cache_path):
+        random.seed(42)
+
+        self.data = data
+        self.tokenizer = tokenizer
+        self.data_partition = data_partition
+        self.negative_sampler = negative_sampler
+        self.instances = []
+        self.task_type = task_type
+        self.max_seq_len = max_seq_len
+        self.sample_data = sample_data
+        self.cache_path = cache_path
+
+        self._group_relevant_documents()
+        self._cache_instances()
+
+    def _group_relevant_documents(self):
+        """
+        Since some datasets have multiple relevants per query, we group them to make NS easier.
+        """
+        query_col = self.data.columns[0]
+        self.data = self.data.groupby(query_col).agg(list).reset_index()
+
+    def _cache_instances(self):
+        """
+        Loads tensors into memory or creates the dataset when it does not exist already.
+        """        
+        signature = "weakly_supervised_pointwise_set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}".\
+            format(self.data_partition,
+                   self.negative_sampler.num_candidates_samples,
+                   self.negative_sampler.name,
+                   self.max_seq_len,
+                   self.sample_data,
+                   self.task_type,
+                   self.tokenizer.__class__.__name__)
+        path = self.cache_path + "/" + signature
+
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                logging.info("Loading instances from {}".format(path))
+                self.instances = pickle.load(f)
+        else:            
+            logging.info("Generating instances with signature {}".format(signature))
+
+            labels = []
+            examples = []
+            for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
+                query = row[0]
+                relevant_documents = row[1]
+                for relevant_document in relevant_documents:
+                    examples.append((query, relevant_document))
+                    labels.append(1.0)
+                ns_candidates, ns_scores, _, _ = self.negative_sampler.sample(query, relevant_documents)                
+
+                for i, ns in enumerate(ns_candidates):
+                    examples.append((query, ns))
+                    labels.append(ns_scores[i])
+
+            logging.info("Encoding examples using tokenizer.batch_encode_plus().")
+            batch_encoding = self.tokenizer(examples, max_length=self.max_seq_len,
+                                                      padding="max_length", truncation=True)
+
+            logging.info("Transforming examples to instances format.")
+            self.instances = []
+            for i in range(len(examples)):
+                inputs = {k: batch_encoding[k][i] for k in batch_encoding}                
+                feature = InputFeatures(**inputs, label=labels[i])
+                self.instances.append(feature)
+
+            for idx in range(3):
+                logging.info("Set {} Instance {} query \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
+                logging.info("Set {} Instance {} document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
+                logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
 

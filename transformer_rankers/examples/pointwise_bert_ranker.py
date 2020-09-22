@@ -68,14 +68,17 @@ def run_experiment(args):
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
 
     #Create the loaders for the datasets, with the respective negative samplers
-    dataloader = dataset.QueryDocumentDataLoader(train, valid, valid,
-                                tokenizer, ns_train, ns_val,
-                                'classification', args.train_batch_size, 
-                                args.val_batch_size, args.max_seq_len, 
-                                args.sample_data, args.data_folder + args.task)
+    loader = dataset.QueryDocumentDataLoader
+    if args.loss_function == "ws-label-smoothing-cross-entropy":
+        loader = dataset.WeaklySupervisedQueryDocumentDataLoader
+    
+    dataloader = loader(train, valid, valid,
+                        tokenizer, ns_train, ns_val,
+                        'classification', args.train_batch_size, 
+                        args.val_batch_size, args.max_seq_len, 
+                        args.sample_data, args.data_folder + args.task)
 
     train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
-
 
     #Instantiate transformer model to be used
     model = pointwise_bert.BertForPointwiseLearning.from_pretrained(args.transformer_model,
