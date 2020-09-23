@@ -157,7 +157,7 @@ if PYSERINI_USABLE:
             sampled = []
             scores = []
             for i, ds in enumerate(sampled_initial):
-                doc, score = d
+                doc, score = ds
                 if doc in relevant_docs:
                     was_relevant_sampled = True
                     relevant_doc_rank = i
@@ -170,7 +170,11 @@ if PYSERINI_USABLE:
                     sampled = sampled + \
                         [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                             if d not in relevant_docs]
-            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+
+            if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
+                normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+            else:
+                normalized_scores = []
             
             normalized_scores = list(normalized_scores) + scores_for_random
             return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank
@@ -288,7 +292,10 @@ class SentenceBERTNegativeSampler():
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d not in relevant_docs]
-        normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+        if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
+            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+        else:
+            normalized_scores = []
         
         normalized_scores = 1-normalized_scores # similarity instead of distances.
         normalized_scores = list(normalized_scores) + scores_for_random
