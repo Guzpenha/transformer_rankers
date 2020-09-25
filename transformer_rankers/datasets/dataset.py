@@ -9,10 +9,12 @@ from IPython import embed
 from tqdm import tqdm
 from abc import *
 
+import torch.utils.data as data
+import numpy as np
+
 import dataclasses
 import functools
 import operator
-import torch.utils.data as data
 import torch
 import logging
 import random
@@ -140,10 +142,11 @@ class QueryDocumentDataLoader(AbstractDataloader):
 class QueryDocumentDataset(data.Dataset):
     """
     Dataset for pointwise learning with <Query,Document> pairs.
+    Generative transformers are not supported for the cached_mode 'memmap'
     """
     def __init__(self, data, tokenizer, data_partition, 
                 negative_sampler, task_type, max_seq_len, sample_data,
-                cache_path):
+                cache_path, cache_mode = "memmap"):
         random.seed(42)
 
         self.data = data
@@ -155,22 +158,30 @@ class QueryDocumentDataset(data.Dataset):
         self.max_seq_len = max_seq_len
         self.sample_data = sample_data
         self.cache_path = cache_path
+        self.cache_mode = cache_mode
 
         self._group_relevant_documents()
-        self._cache_instances()
+        if self.cache_mode =='memmap':
+            self._cache_instances_memmap()
+        elif self.cache_mode =='pickle':
+            self._cache_instances_pickle()
+        del(self.data)
 
     def _group_relevant_documents(self):
         """
         Since some datasets have multiple relevants per query, we group them to make NS easier.
         """
         query_col = self.data.columns[0]
+        num_rel_documents = self.data.shape[0] #datasets have a format of one line per query and doc combination
         self.data = self.data.groupby(query_col).agg(list).reset_index()
+        num_queries = self.data.shape[0]
+        self.number_instances = (num_queries * self.negative_sampler.num_candidates_samples) + num_rel_documents
 
-    def _cache_instances(self):
+    def _cache_instances_pickle(self):
         """
         Loads tensors into memory or creates the dataset when it does not exist already.
         """        
-        signature = "pointwise_set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}".\
+        signature = "pointwise_set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}.pk".\
             format(self.data_partition,
                    self.negative_sampler.num_candidates_samples,
                    self.negative_sampler.name,
@@ -184,7 +195,7 @@ class QueryDocumentDataset(data.Dataset):
             with open(path, 'rb') as f:
                 logging.info("Loading instances from {}".format(path))
                 self.instances = pickle.load(f)
-        else:            
+        else:
             logging.info("Generating instances with signature {}".format(signature))
 
             #Creating labels (currently there is support only for binary relevance)
@@ -227,13 +238,10 @@ class QueryDocumentDataset(data.Dataset):
                 inputs = {k: batch_encoding[k][i] for k in batch_encoding}
                 if self.task_type == "generation":
                     targets = {k: target_encodings[k][i] for k in target_encodings}
-                    inputs = {**inputs, **targets}
-                if self.task_type == "classification":
+                    feature = {**inputs, **targets}
+                elif self.task_type == "classification":
                     feature = InputFeatures(**inputs, label=labels[i])
-                else:
-                    feature = inputs
                 self.instances.append(feature)
-
             for idx in range(3):
                 logging.info("Set {} Instance {} query \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
                 logging.info("Set {} Instance {} document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
@@ -243,11 +251,76 @@ class QueryDocumentDataset(data.Dataset):
 
         logging.info("Total of {} instances were cached.".format(len(self.instances)))
 
+    def _cache_instances_memmap(self):
+        """
+        Loads the memset numpy matrices in case they exist otherwise create them.
+        """
+        signature = "pointwise_set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}.dat".\
+            format(self.data_partition,
+                   self.negative_sampler.num_candidates_samples,
+                   self.negative_sampler.name,
+                   self.max_seq_len,
+                   self.sample_data,
+                   self.task_type,
+                   self.tokenizer.__class__.__name__)
+        path_input_ids = self.cache_path + "/input_ids_" + signature
+        if not os.path.exists(path_input_ids):
+            logging.info("Generating instances with signature {}".format(signature))
+            labels = []
+            for r in self.data.itertuples(index=False):
+                labels+=([1] * len(r[1])) #relevant documents are grouped at the second column.
+                labels+=([0] * (self.negative_sampler.num_candidates_samples)) # each query has N negative samples.
+            labels = np.array(labels)
+            path_labels = self.cache_path + "/labels_" + signature
+            self.mem_maps = {}
+            self.mem_maps['labels'] = np.memmap(path_labels, dtype='int', mode='w+', shape=labels.shape)
+            self.mem_maps['labels'][:] = labels[:]
+
+            examples = []
+            for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
+                query = row[0]
+                relevant_documents = row[1]
+                for relevant_document in relevant_documents:
+                    examples.append((query, relevant_document))
+                ns_candidates, _ , _ , _ = self.negative_sampler.sample(query, relevant_documents)
+                for ns in ns_candidates:
+                    examples.append((query, ns))
+
+            logging.info("Encoding examples using tokenizer.batch_encode_plus().")
+            batch_encoding = self.tokenizer(examples, max_length=self.max_seq_len,
+                                                      padding="max_length", truncation=True)
+            for k in batch_encoding:
+                path_input = self.cache_path + "/{}_".format(k) + signature
+                np_batch_encoding = np.array(batch_encoding[k])
+                self.mem_maps[k] = np.memmap(path_input, dtype='int', mode='w+', shape=np_batch_encoding.shape)
+                self.mem_maps[k][:] = np_batch_encoding[:]
+            del(batch_encoding)
+            del(np_batch_encoding)
+            del(self.mem_maps)
+
+        self.mem_maps = {}
+        for k in ['input_ids', 'token_type_ids', 'attention_mask', 'labels']:
+            filename = self.cache_path + "/{}_".format(k) + signature
+            logging.info("Loading {} from {}".format(k, filename))
+            data_shape = (self.number_instances, self.max_seq_len)
+            if k == 'labels':
+                data_shape = (self.number_instances)
+            self.mem_maps[k] = np.memmap(filename, dtype='int', mode='r', shape=data_shape)        
+
     def __len__(self):
-        return len(self.instances)
+        return self.number_instances
 
     def __getitem__(self, index):
-        return self.instances[index]
+        if self.cache_mode == 'pickle':
+            return self.instances[index]
+        elif self.cache_mode == 'memmap':
+            instance_data = {}
+            for k in self.mem_maps:
+                if k != "labels":
+                    instance_data[k] = list(self.mem_maps[k][index])
+            inputs = {k: instance_data[k] for k in instance_data}
+            feature = InputFeatures(**inputs, label=int(self.mem_maps["labels"][index]))
+            return feature
 
 class QueryPosDocNegDocDataLoader(AbstractDataloader):
     def __init__(self, train_df, val_df, test_df, tokenizer,
