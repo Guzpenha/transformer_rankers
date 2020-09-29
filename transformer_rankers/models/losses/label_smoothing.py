@@ -18,9 +18,8 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
     def forward(self, inputs, target):
         log_prob = F.log_softmax(inputs, dim=-1)
-        weight = inputs.new_ones(inputs.size()) * \
-            self.smoothing / (inputs.size(-1) - 1.)
-        weight.scatter_(-1, target.unsqueeze(-1), (1. - self.smoothing))
+        weight = inputs.new_ones(inputs.size()) * (self.smoothing / inputs.size(-1))
+        weight.scatter_(-1, target.unsqueeze(-1), (1. - self.smoothing) + self.smoothing / (inputs.size(-1)))
         loss = (-weight * log_prob).sum(dim=-1).mean()
         return loss.mean()
 
@@ -42,23 +41,27 @@ class WeaklySupervisedLabelSmoothingCrossEntropy(nn.Module):
 
         one_hot_target = target.int().clone().long()
 
-        #there has to be more elegant way of creating the weight mask in pytorch...
-        # The normal label smoothing for examples where label = 1
-        weight_relevant = inputs.new_ones(inputs.size()) * \
-            self.smoothing / (inputs.size(-1) - 1.)
-        weight_relevant.scatter_(-1, one_hot_target.unsqueeze(-1), (1. - self.smoothing))
+        one_hot_weight = inputs.new_zeros(inputs.size())
+        one_hot_weight.scatter_(-1, one_hot_target.unsqueeze(-1), 1)
+
+        #There has to be more elegant way of creating the weak supervised 
+        #weight mask in pytorch, however this is what I was able to do.
+
+        # The normal label smoothing for examples where label = 1 (i.e. the uniform distribution)
+        weight_relevant = inputs.new_ones(inputs.size()) * ( 1 / inputs.size(-1))
         weight_relevant = weight_relevant * one_hot_target.unsqueeze(-1)
 
         # Use weak supervision for labels = 0 and logit 0
         weight_weak_supervision = inputs.new_zeros(inputs.size())
         weight_weak_supervision.scatter_(-1, 1-one_hot_target.unsqueeze(-1), 1) # For labels 0 and the negative logit
         weight_weak_supervision = weight_weak_supervision * (target * 1-one_hot_target).unsqueeze(-1)
-
         # Use (1-weak supervision) for labels = 0 and logit 0
         weight_weak_supervision_pos = inputs.new_zeros(inputs.size())
         weight_weak_supervision_pos.scatter_(-1, one_hot_target.unsqueeze(-1), 1) # For labels 0 and the positive logit
         weight_weak_supervision_pos = weight_weak_supervision_pos * (1-target).unsqueeze(-1)
 
-        weight = weight_relevant + weight_weak_supervision + weight_weak_supervision_pos
+        weight_ws = weight_relevant + weight_weak_supervision + weight_weak_supervision_pos
+
+        weight = (1-self.smoothing) * one_hot_weight  + (self.smoothing * weight_ws)
         loss = (-weight * log_prob).sum(dim=-1).mean()
         return loss.mean()

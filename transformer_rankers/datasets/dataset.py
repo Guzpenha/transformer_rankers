@@ -277,7 +277,7 @@ class QueryDocumentDataset(data.Dataset):
             self.mem_maps['labels'][:] = labels[:]
 
             logging.info("Finding negative samples and applying tokenizer.batch_encode_plus().")
-            len_each_batch = 1000
+            len_each_batch = min(1000, self.data.shape[0])
             number_batches = self.data.shape[0]//len_each_batch
             logging.info("Batches of size {}.".format(len_each_batch))
             for k in ['input_ids', 'token_type_ids', 'attention_mask']:
@@ -670,7 +670,7 @@ class WeaklySupervisedQueryDocumentDataset(data.Dataset):
                 path_input = self.cache_path + "/{}_".format(k) + signature
                 self.mem_maps[k] = np.memmap(path_input, dtype='int', mode='w+', shape=(self.number_instances, self.max_seq_len))
 
-            len_each_batch = 1000
+            len_each_batch = min(1000, self.data.shape[0])
             number_batches = self.data.shape[0]//len_each_batch
             logging.info("Batches of size {}.".format(len_each_batch))
 
