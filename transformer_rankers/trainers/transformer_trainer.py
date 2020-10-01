@@ -41,7 +41,7 @@ class TransformerTrainer():
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
                  num_validation_batches, num_epochs, lr, sacred_ex,
                  validate_every_steps=-1, max_grad_norm=0.5, 
-                 validation_metric='ndcg_cut_10', num_training_instances=-1):
+                 validation_metric='ndcg_cut_10', num_training_instances=-1, wsls_params = {}):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
@@ -54,12 +54,15 @@ class TransformerTrainer():
         self.lr = lr
         self.sacred_ex = sacred_ex
         self.num_training_instances=num_training_instances
+        self.wsls_params = wsls_params
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info("Device {}".format(self.device))
         logging.info("Num GPU {}".format(self.num_gpu))
         self.model = model.to(self.device)
+        if "is_CL" in self.wsls_params:
+            self.initial_ls = self.model.loss_fct.smoothing
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
             self.model = nn.DataParallel(self.model, device_ids=devices)
@@ -107,6 +110,17 @@ class TransformerTrainer():
                                       total=len(self.train_loader))
             for batch_inputs in epoch_batches_tqdm:
                 self.model.train()
+
+                if "is_TSLA" in self.wsls_params and self.wsls_params["is_TSLA"]:
+                    if total_instances > self.wsls_params["TSLA_num_instances"]:
+                        self.model.loss_fct.smoothing = 0.0
+
+                if "is_CL" in self.wsls_params and self.wsls_params["is_CL"]:
+                    reach_one_hot_at = 0.8
+                    percentage_iterations = total_instances / (self.num_training_instances * reach_one_hot_at)
+                    percentage_iterations = min(1.0, percentage_iterations)
+                    percentage_of_original_smoothing = 1-percentage_iterations
+                    self.model.loss_fct.smoothing = self.initial_ls * percentage_of_original_smoothing                    
 
                 for k, v in batch_inputs.items():
                     batch_inputs[k] = v.to(self.device)
