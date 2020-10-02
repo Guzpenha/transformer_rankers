@@ -91,8 +91,8 @@ class TransformerTrainer():
             logging.info("Validating every {} epoch.".format(self.validate_every_epochs))
         if self.validate_every_steps > 0:
             logging.info("Validating every {} step.".format(self.validate_every_steps))
-        if self._has_wandb:
-            wandb.watch(self.model)
+        # if self._has_wandb:
+        #     wandb.watch(self.model)
 
         total_steps=0
         total_loss=0
