@@ -63,7 +63,7 @@ class RandomNegativeSampler():
 
         while len(sampled) != self.num_candidates_samples:
             sampled = [d for d in random.sample(self.candidates, self.num_candidates_samples) if d not in relevant_docs]
-        return sampled, [random.uniform(0, 0.49) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
+        return sampled, [random.uniform(0, 0.99) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
 
 if PYSERINI_USABLE:
     class BM25NegativeSamplerPyserini():
@@ -165,14 +165,14 @@ if PYSERINI_USABLE:
                     sampled.append(doc)
                     scores.append(score)
 
-            scores_for_random=[random.uniform(0,1) for i in range(self.num_candidates_samples-len(sampled))]
+            scores_for_random=[0 for i in range(self.num_candidates_samples-len(sampled))]
             while len(sampled) != self.num_candidates_samples: 
                     sampled = sampled + \
                         [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                             if d not in relevant_docs]
 
             if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
-                normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+                normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
             else:
                 normalized_scores = []
             
@@ -287,13 +287,13 @@ class SentenceBERTNegativeSampler():
                 sampled.append(d)
                 scores.append(distances[i])
 
-        scores_for_random=[random.uniform(0, 0.49) for i in range(self.num_candidates_samples-len(sampled))]
+        scores_for_random=[0 for i in range(self.num_candidates_samples-len(sampled))]
         while len(sampled) != self.num_candidates_samples: 
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d not in relevant_docs]
         if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
-            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.49))
+            normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
         else:
             normalized_scores = []
         
