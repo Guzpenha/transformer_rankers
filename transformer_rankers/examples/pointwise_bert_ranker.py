@@ -45,7 +45,7 @@ def run_experiment(args):
     #Load datasets
     train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", 
                         nrows=args.sample_data if args.sample_data != -1 else None)
-    valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t",
+    valid = pd.read_csv(args.data_folder+args.task+"/test.tsv", sep="\t",
                         nrows=args.sample_data if args.sample_data != -1 else None)
 
     #Choose the negative candidate sampler
@@ -63,7 +63,7 @@ def run_experiment(args):
         ns_val = negative_sampling.RandomNegativeSampler(list(valid[document_col].values) + list(train[document_col].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
         ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini_test", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid[document_col].values) + list(train[document_col].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
