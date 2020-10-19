@@ -71,8 +71,9 @@ def run_experiment(args):
 
     train = train.groupby(train.columns[0]).agg(list).reset_index()
     labels = []
+    sample = 10000
     max_labels = 0
-    for idx, row in enumerate(tqdm(train.itertuples(index=False), total=len(train))):
+    for idx, row in enumerate(tqdm(train[0:sample].itertuples(index=False), total=sample)):
         query = row[0]
         relevant_documents = row[1]
         query_labels = []
