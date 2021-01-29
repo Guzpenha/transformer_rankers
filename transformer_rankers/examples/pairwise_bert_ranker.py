@@ -4,7 +4,7 @@ from transformer_rankers.negative_samplers import negative_sampling
 from transformer_rankers.eval import results_analyses_tools
 from transformer_rankers.models import pairwise_bert
 
-from transformers import BertTokenizer
+from transformers import BertTokenizerFast
 from sacred.observers import FileStorageObserver
 from sacred import Experiment
 from IPython import embed
@@ -35,7 +35,7 @@ def run_experiment(args):
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    tokenizer = BertTokenizer.from_pretrained(args.transformer_model)
+    tokenizer = BertTokenizerFast.from_pretrained(args.transformer_model)
     # Conversation Response Ranking datasets needs special tokens
     if args.task in ["mantis", "msdialog", "ubuntu_dstc8"]: 
         special_tokens_dict = {'additional_special_tokens': ['[UTTERANCE_SEP]', '[TURN_SEP]'] }

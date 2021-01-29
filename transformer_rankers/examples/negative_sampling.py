@@ -67,7 +67,7 @@ def main():
         for ns_name, ns in [("random", ns_valid_random),
                             ("bm25", ns_valid_bm25),
                             ("sentenceBERT", ns_valid_sentenceBERT)]:
-            ns_candidates, had_relevant, rank_relevant = ns.sample(context, relevant_response)
+            ns_candidates, scores, had_relevant, rank_relevant = ns.sample(context, relevant_response)
             for ns in ns_candidates:
                 instance.append(ns)
             instance.append(had_relevant)

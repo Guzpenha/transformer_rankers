@@ -41,7 +41,7 @@ class TransformerTrainer():
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
                  num_validation_batches, num_epochs, lr, sacred_ex,
                  validate_every_steps=-1, max_grad_norm=0.5, 
-                 validation_metric='ndcg_cut_10', num_training_instances=-1):
+                 validation_metric='ndcg_cut_10', num_training_instances=-1, wsls_params = {}):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
@@ -54,12 +54,15 @@ class TransformerTrainer():
         self.lr = lr
         self.sacred_ex = sacred_ex
         self.num_training_instances=num_training_instances
+        self.wsls_params = wsls_params
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info("Device {}".format(self.device))
         logging.info("Num GPU {}".format(self.num_gpu))
         self.model = model.to(self.device)
+        if "is_CL" in self.wsls_params:
+            self.initial_ls = self.model.loss_fct.smoothing
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
             self.model = nn.DataParallel(self.model, device_ids=devices)
@@ -88,8 +91,8 @@ class TransformerTrainer():
             logging.info("Validating every {} epoch.".format(self.validate_every_epochs))
         if self.validate_every_steps > 0:
             logging.info("Validating every {} step.".format(self.validate_every_steps))
-        if self._has_wandb:
-            wandb.watch(self.model)
+        # if self._has_wandb:
+        #     wandb.watch(self.model)
 
         total_steps=0
         total_loss=0
@@ -107,6 +110,23 @@ class TransformerTrainer():
                                       total=len(self.train_loader))
             for batch_inputs in epoch_batches_tqdm:
                 self.model.train()
+
+                if "is_TSLA" in self.wsls_params and self.wsls_params["is_TSLA"]:
+                    if total_instances > self.wsls_params["TSLA_num_instances"]:
+                        if self.num_gpu > 1:
+                            self.model.module.loss_fct.smoothing = 0.0
+                        else:
+                            self.model.loss_fct.smoothing = 0.0
+
+                if "is_CL" in self.wsls_params and self.wsls_params["is_CL"]:
+                    reach_one_hot_at = 0.8
+                    percentage_iterations = total_instances / (self.num_training_instances * reach_one_hot_at)
+                    percentage_iterations = min(1.0, percentage_iterations)
+                    percentage_of_original_smoothing = 1-percentage_iterations
+                    if self.num_gpu > 1:
+                        self.model.module.loss_fct.smoothing = self.initial_ls * percentage_of_original_smoothing
+                    else:
+                        self.model.loss_fct.smoothing = self.initial_ls * percentage_of_original_smoothing
 
                 for k, v in batch_inputs.items():
                     batch_inputs[k] = v.to(self.device)
@@ -187,7 +207,7 @@ class TransformerTrainer():
                 if self.task_type == "classification":
                     outputs = self.model(**batch)
                     _, logits = outputs[:2]
-                    all_labels+=batch["labels"].tolist()
+                    all_labels+=batch["labels"].int().tolist() # this is required because of the weak supervision
                     all_logits+=logits[:, 1].tolist()
                     all_softmax_logits+=torch.softmax(logits, dim=1)[:, 1].tolist()
 
@@ -258,7 +278,7 @@ class TransformerTrainer():
                 fwrd_predictions = []
                 fwrd_softmax_predictions = []
                 if self.task_type == "classification":                    
-                    labels+= batch["labels"].tolist()
+                    labels+=batch["labels"].int().tolist()
                     for i, f_pass in enumerate(range(foward_passes)):
                         outputs = self.model(**batch)
                         _, batch_logits = outputs[:2]

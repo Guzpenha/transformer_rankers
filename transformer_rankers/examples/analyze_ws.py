@@ -8,6 +8,7 @@ from transformers import BertTokenizerFast, BertForSequenceClassification
 from sacred.observers import FileStorageObserver
 from sacred import Experiment
 from IPython import embed
+from tqdm import tqdm
 
 import torch
 import pandas as pd
@@ -45,7 +46,7 @@ def run_experiment(args):
     #Load datasets
     train = pd.read_csv(args.data_folder+args.task+"/train.tsv", sep="\t", 
                         nrows=args.sample_data if args.sample_data != -1 else None)
-    valid = pd.read_csv(args.data_folder+args.task+"/test.tsv", sep="\t",
+    valid = pd.read_csv(args.data_folder+args.task+"/valid.tsv", sep="\t",
                         nrows=args.sample_data if args.sample_data != -1 else None)
 
     #Choose the negative candidate sampler
@@ -63,98 +64,30 @@ def run_experiment(args):
         ns_val = negative_sampling.RandomNegativeSampler(list(valid[document_col].values) + list(train[document_col].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
         ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/anserini_test", args.sample_data, args.anserini_folder)
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini_valid/", args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid[document_col].values) + list(train[document_col].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)
 
-    #Create the loaders for the datasets, with the respective negative samplers
-    loader = dataset.QueryDocumentDataLoader
-    if args.loss_function == "ws-label-smoothing-cross-entropy":
-        loader = dataset.WeaklySupervisedQueryDocumentDataLoader
-    
-    dataloader = loader(train, valid, valid,
-                        tokenizer, ns_train, ns_val,
-                        'classification', args.train_batch_size, 
-                        args.val_batch_size, args.max_seq_len, 
-                        args.sample_data, args.data_folder + args.task)
+    train = train.groupby(train.columns[0]).agg(list).reset_index()
+    labels = []
+    sample = 10000
+    max_labels = 0
+    for idx, row in enumerate(tqdm(train[0:sample].itertuples(index=False), total=sample)):
+        query = row[0]
+        relevant_documents = row[1]
+        query_labels = []
+        for relevant_document in relevant_documents:
+            query_labels.append(1.0)
+        ns_candidates, ns_scores, _, _ = ns_train.sample(query, relevant_documents)
+        for i, ns in enumerate(ns_candidates):
+            query_labels.append(ns_scores[i])
+        labels.append(query_labels)
+        if max_labels < len(query_labels):
+            max_labels = len(query_labels)
+    df_labels = pd.DataFrame(labels, columns = ["candidate_{}".format(i) for i in range(max_labels)])
+    df_labels.to_csv(args.output_dir+"/{}_weak_supervision.csv".format(args.task), index=False)
 
-    train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
-
-    #Instantiate transformer model to be used
-    model = pointwise_bert.BertForPointwiseLearning.from_pretrained(args.transformer_model,
-            loss_function=args.loss_function, smoothing=args.smoothing)
-
-    model.resize_token_embeddings(len(dataloader.tokenizer))
-
-    wsls_params = {
-        "is_CL": args.use_ls_cl,
-        "is_TSLA": args.use_ls_ts,
-        "TSLA_num_instances" : args.num_instances_TSLA
-    }
-    #Instantiate trainer that handles fitting.
-    trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
-                                 args.num_ns_eval, "classification", tokenizer,
-                                 args.validate_every_epochs, args.num_validation_batches,
-                                 args.num_epochs, args.lr, args.sacred_ex, args.validate_every_steps, 
-                                 validation_metric='R_10@1', num_training_instances=args.num_training_instances,
-                                 wsls_params=wsls_params)
-
-    #Train
-    model_name = model.__class__.__name__
-    logging.info("Fitting {} for {}{}".format(model_name, args.data_folder, args.task))
-    trainer.fit()
-
-    #Predict for test
-    validation_metrics = ['R_10@1', 'R_10@5', 'map']
-    logging.info("Predicting for the validation set.")
-    preds, labels, softmax_logits = trainer.test()
-    res = results_analyses_tools.evaluate_and_aggregate(preds, labels, validation_metrics)
-    for metric, v in res.items():
-        logging.info("Test {} : {:3f}".format(metric, v))
-        wandb.log({'step': 0, "dev_"+metric : v})
-
-    #Saving predictions and labels to a file
-    max_preds_column = max([len(l) for l in preds])
-    preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-    preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions.csv", index=False)
-
-    softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-    softmax_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_softmax.csv", index=False)
-
-    labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
-    labels_df.to_csv(args.output_dir+"/"+args.run_id+"/labels.csv", index=False)
-
-    #Saving model to a file
-    if args.save_model:
-        torch.save(model.state_dict(), args.output_dir+"/"+args.run_id+"/model")
-
-    #In case we want to get uncertainty estimations at prediction time
-    if args.predict_with_uncertainty_estimation:  
-        logging.info("Predicting with MC dropout for the validation set.")
-        preds, labels, softmax_logits, foward_passes_preds, uncertainties = trainer.test_with_dropout(args.num_foward_prediction_passes)
-        res = results_analyses_tools.evaluate_and_aggregate(preds, labels, validation_metrics)
-        for metric, v in res.items():
-            logging.info("Test (w. dropout and {} foward passes) {} : {:3f}".format(args.num_foward_prediction_passes, metric, v))
-        
-        max_preds_column = max([len(l) for l in preds])
-        preds_df = pd.DataFrame(preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-        preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout.csv", index=False)
-
-        softmax_df = pd.DataFrame(softmax_logits, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-        softmax_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout_softmax.csv", index=False)
-
-        for i, f_pass_preds in enumerate(foward_passes_preds):
-            preds_df = pd.DataFrame(f_pass_preds, columns=["prediction_"+str(i) for i in range(max_preds_column)])
-            preds_df.to_csv(args.output_dir+"/"+args.run_id+"/predictions_with_dropout_f_pass_{}.csv".format(i), index=False)
-
-        labels_df = pd.DataFrame(labels, columns=["label_"+str(i) for i in range(max_preds_column)])
-        labels_df.to_csv(args.output_dir+"/"+args.run_id+"/labels.csv", index=False)
-        
-        uncertainties_df = pd.DataFrame(uncertainties, columns=["uncertainty_"+str(i) for i in range(max_preds_column)])
-        uncertainties_df.to_csv(args.output_dir+"/"+args.run_id+"/uncertainties.csv", index=False)
-
-    return trainer.best_eval_metric
 
 def main():
     parser = argparse.ArgumentParser()
