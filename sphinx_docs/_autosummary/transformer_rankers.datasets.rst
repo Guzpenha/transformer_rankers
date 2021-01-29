@@ -29,7 +29,9 @@ transformer\_rankers.datasets
    :recursive:
 
    transformer_rankers.datasets.dataset
+   transformer_rankers.datasets.downloader
    transformer_rankers.datasets.preprocess_crr
    transformer_rankers.datasets.preprocess_pr
    transformer_rankers.datasets.preprocess_sqr
+   transformer_rankers.datasets.processors
 

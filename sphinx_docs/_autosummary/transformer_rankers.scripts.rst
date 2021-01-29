@@ -28,10 +28,6 @@ transformer\_rankers.scripts
    :template: custom-module-template.rst
    :recursive:
 
-   transformer_rankers.scripts.analyze_uncertainty
-   transformer_rankers.scripts.preprocess_pr_datasets
-   transformer_rankers.scripts.preprocess_sqr_datasets
-   transformer_rankers.scripts.preprocess_ubuntu_dstc8
    transformer_rankers.scripts.select_ns_examples
    transformer_rankers.scripts.train_sentenceBERT_crr
 

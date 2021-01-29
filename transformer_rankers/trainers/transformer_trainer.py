@@ -35,13 +35,13 @@ class TransformerTrainer():
         max_grad_norm: float indicating the gradient norm to clip.
         validate_every_steps: int containing the number of steps (batches) to calculate validation <validation_metric> when reached. (-1 if no logging is required)
         validation_metric: which evaluation metric to use for validation error (e.g. ndcg_cut_10). See transformer_rankers/evaluation for the metrics.
-
+        num_training_instances: int cointaining the number of instances to see before doing early stop (-1 if no early stop is required)
     """
     def __init__(self, model, train_loader, val_loader, test_loader,
                  num_ns_eval, task_type, tokenizer, validate_every_epochs,
                  num_validation_batches, num_epochs, lr, sacred_ex,
                  validate_every_steps=-1, max_grad_norm=0.5, 
-                 validation_metric='ndcg_cut_10', num_training_instances=-1, wsls_params = {}):
+                 validation_metric='ndcg_cut_10', num_training_instances=-1):
 
         self.num_ns_eval = num_ns_eval
         self.task_type = task_type
@@ -53,16 +53,14 @@ class TransformerTrainer():
         self.num_epochs = num_epochs
         self.lr = lr
         self.sacred_ex = sacred_ex
-        self.num_training_instances=num_training_instances
-        self.wsls_params = wsls_params
+        self.num_training_instances=num_training_instances        
 
         self.num_gpu = torch.cuda.device_count()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info("Device {}".format(self.device))
         logging.info("Num GPU {}".format(self.num_gpu))
-        self.model = model.to(self.device)
-        if "is_CL" in self.wsls_params:
-            self.initial_ls = self.model.loss_fct.smoothing
+        self.model = model.to(self.device)        
+
         if self.num_gpu > 1:
             devices = [v for v in range(self.num_gpu)]
             self.model = nn.DataParallel(self.model, device_ids=devices)
@@ -110,23 +108,6 @@ class TransformerTrainer():
                                       total=len(self.train_loader))
             for batch_inputs in epoch_batches_tqdm:
                 self.model.train()
-
-                if "is_TSLA" in self.wsls_params and self.wsls_params["is_TSLA"]:
-                    if total_instances > self.wsls_params["TSLA_num_instances"]:
-                        if self.num_gpu > 1:
-                            self.model.module.loss_fct.smoothing = 0.0
-                        else:
-                            self.model.loss_fct.smoothing = 0.0
-
-                if "is_CL" in self.wsls_params and self.wsls_params["is_CL"]:
-                    reach_one_hot_at = 0.8
-                    percentage_iterations = total_instances / (self.num_training_instances * reach_one_hot_at)
-                    percentage_iterations = min(1.0, percentage_iterations)
-                    percentage_of_original_smoothing = 1-percentage_iterations
-                    if self.num_gpu > 1:
-                        self.model.module.loss_fct.smoothing = self.initial_ls * percentage_of_original_smoothing
-                    else:
-                        self.model.loss_fct.smoothing = self.initial_ls * percentage_of_original_smoothing
 
                 for k, v in batch_inputs.items():
                     batch_inputs[k] = v.to(self.device)

@@ -15,7 +15,7 @@ A |library_link| to do research with transformer-based rankers.
    :caption: Tutorials
 
    quick-start
-   main-modules
+   .. main-modules
 
 Documentation
 **********************

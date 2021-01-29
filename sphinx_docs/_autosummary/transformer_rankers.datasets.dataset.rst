@@ -9,6 +9,13 @@ transformer\_rankers.datasets.dataset
 
    
    
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      collate_T2T_batch
+   
    
 
    
@@ -22,7 +29,10 @@ transformer\_rankers.datasets.dataset
       AbstractDataloader
       QueryDocumentDataLoader
       QueryDocumentDataset
-      T2TDataCollator
+      QueryPosDocNegDocDataLoader
+      QueryPosDocNegDocDataset
+      WeaklySupervisedQueryDocumentDataLoader
+      WeaklySupervisedQueryDocumentDataset
    
    
 

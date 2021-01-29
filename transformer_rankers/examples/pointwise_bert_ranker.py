@@ -70,8 +70,6 @@ def run_experiment(args):
 
     #Create the loaders for the datasets, with the respective negative samplers
     loader = dataset.QueryDocumentDataLoader
-    if args.loss_function == "ws-label-smoothing-cross-entropy":
-        loader = dataset.WeaklySupervisedQueryDocumentDataLoader
     
     dataloader = loader(train, valid, valid,
                         tokenizer, ns_train, ns_val,
@@ -87,18 +85,13 @@ def run_experiment(args):
 
     model.resize_token_embeddings(len(dataloader.tokenizer))
 
-    wsls_params = {
-        "is_CL": args.use_ls_cl,
-        "is_TSLA": args.use_ls_ts,
-        "TSLA_num_instances" : args.num_instances_TSLA
-    }
+
     #Instantiate trainer that handles fitting.
     trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 
                                  args.num_ns_eval, "classification", tokenizer,
                                  args.validate_every_epochs, args.num_validation_batches,
                                  args.num_epochs, args.lr, args.sacred_ex, args.validate_every_steps, 
-                                 validation_metric='R_10@1', num_training_instances=args.num_training_instances,
-                                 wsls_params=wsls_params)
+                                 validation_metric='R_10@1', num_training_instances=args.num_training_instances)
 
     #Train
     model_name = model.__class__.__name__
@@ -214,12 +207,6 @@ def main():
                         help="Loss function (default is 'cross-entropy').")
     parser.add_argument("--smoothing", default=0.1, type=float, required=False,
                         help="Smoothing hyperparameter used only if loss_function is label-smoothing-cross-entropy.")
-    parser.add_argument("--use_ls_cl", default=False, action="store_true", required=False,
-                        help="Use curriculum learning for the label smoothing rate.")
-    parser.add_argument("--use_ls_ts", default=False, action="store_true", required=False,
-                        help="Use two stage (x, 0) for the label smoothing rate.")
-    parser.add_argument("--num_instances_TSLA", default=0, type=int, required=False,
-                        help="Number of training instances to swap from Label smoothing to one hot.")
 
     #Uncertainty estimation hyperparameters
     parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,
