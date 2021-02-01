@@ -19,6 +19,7 @@ TASK_TO_URLS = {
                     "https://msmarco.blob.core.windows.net/msmarcoranking/queries.tar.gz",
                     "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.dev.tsv",
                     "https://msmarco.blob.core.windows.net/msmarcoranking/qrels.train.tsv"], #https://microsoft.github.io/TREC-2020-Deep-Learning/
+    "antique": ["ir-datasets"], 
     #Similar Question Retrieval (SQR)
     "qqp": ["https://docs.google.com/uc?export=download&id=1KAFO5l7H89zuNcSQrH08JvcD5bM7S2A_"], # https://www.kaggle.com/c/quora-question-pairs
     "linkso": ["https://docs.google.com/uc?export=download&id=1X5GoVi_OcRxahXH1pRW7TSesZUeMH3ss"] # https://sites.google.com/view/linkso
@@ -33,6 +34,7 @@ TASK_TO_PROCESSOR = {
     "ubuntu_dstc8": processors.ubuntu_dstc8_processor,
     # Passage Retrieval (PR)
     "trec2020pr": processors.trec2020pr_processor,
+    "antique": processors.antique,
     #Similar Question Retrieval (SQR)
     "qqp": processors.qqp_processor,
     "linkso": processors.linkso_processor
@@ -54,10 +56,13 @@ class DataDownloader():
     def download_and_preprocess(self):
         os.makedirs(self.data_folder+self.task, exist_ok=True)
         for url in self.urls_to_download:
-            logging.info("Downloading {}".format(url))
-            if "docs.google.com" in url:
+            if "ir-datasets" in url:
+                logging.info("Resorting to ir-datasets downloader.")
+            elif "docs.google.com" in url:
+                logging.info("Downloading {}".format(url))
                 download_file_from_google_drive(url.split("id=")[-1], self.data_folder+self.task+"/drive_file")
             else:
+                logging.info("Downloading {}".format(url))
                 wget.download(url, out=self.data_folder+self.task+"/"+url.split("/")[-1])
         logging.info("Processing files.")
         self.processor(self.data_folder+self.task+"/")

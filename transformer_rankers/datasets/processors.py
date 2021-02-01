@@ -1,11 +1,41 @@
 from transformer_rankers.datasets import preprocess_pr, preprocess_crr, preprocess_sqr
-import pandas as pd
 from IPython import embed
+
+import pandas as pd
 import py7zr
 import os
 import tarfile
 import shutil
 import zipfile
+import ir_datasets
+
+
+def antique(data_folder):
+    """
+    Downloads and transforms the ANTIQUE dataset using the ir_datasets library
+    """    
+    def load_split(split):    
+        dataset = ir_datasets.load(split)
+        docs = {}
+        for doc_id, text in dataset.docs_iter():
+            docs[doc_id] = text
+
+        query = {}
+        for query_id, text in dataset.queries_iter():
+            query[query_id] = text
+
+        split_data = []
+        for query_id, doc_id, rel, iteration in dataset.qrels_iter():
+            split_data.append([query[query_id], docs[doc_id], rel])        
+        return pd.DataFrame(split_data, columns=['query', 'passage', 'rel'])
+
+    train = load_split('antique/train/split200-train')
+    valid = load_split('antique/train/split200-valid')
+    test = load_split('antique/test')
+
+    train.to_csv(data_folder+"train.tsv", sep="\t", index=False)
+    valid.to_csv(data_folder+"valid.tsv", sep="\t", index=False)
+    test.to_csv(data_folder+"test.tsv", sep="\t", index=False)
 
 def linkso_processor(data_folder):
     """

@@ -179,7 +179,8 @@ class QueryDocumentDataset(data.Dataset):
 
     def _cache_instances_pickle(self):
         """
-        Loads tensors into memory or creates the dataset when it does not exist already.
+        WARNING: This is no longer being used as a cache method and memmap should be prefered
+        Loads tensors into memory or creates the dataset when it does not exist already.        
         """        
         signature = "pointwise_set_{}_n_cand_docs_{}_ns_sampler_{}_seq_max_l_{}_sample_{}_for_{}_using_{}.pk".\
             format(self.data_partition,
@@ -268,8 +269,13 @@ class QueryDocumentDataset(data.Dataset):
             logging.info("Generating instances with signature {}".format(signature))
             labels = []
             for r in self.data.itertuples(index=False):
-                labels+=([1] * len(r[1])) #relevant documents are grouped at the second column.
+                #relevant documents are grouped at the second column.
+                if len(r) > 2: #multiple levels of relevance
+                    labels+=r[2]
+                else:
+                    labels+=([1] * len(r[1]))
                 labels+=([0] * (self.negative_sampler.num_candidates_samples)) # each query has N negative samples.
+
             labels = np.array(labels)
             path_labels = self.cache_path + "/labels_" + signature
             self.mem_maps = {}

@@ -36,7 +36,7 @@ def acumulate_list_multiple_relevant(l : List[float]) -> List[List[float]]:
     current_l = []
     for i in range(len(l)):
         current_l.append(l[i])
-        if (i == len(l)-1) or (l[i] == 0 and l[i+1] == 1):
+        if (i == len(l)-1) or (l[i] == 0 and l[i+1] >= 1):
             acum_l.append(current_l)
             current_l = []
     return acum_l

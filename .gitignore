@@ -4,6 +4,7 @@ wandb
 .vscode/launch.json
 sphinx_docs/_autosummary
 sphinx_docs/_build
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

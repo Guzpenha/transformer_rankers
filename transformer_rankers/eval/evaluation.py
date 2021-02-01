@@ -25,13 +25,13 @@ def recall_at_with_k_candidates(preds, labels, k, at):
         
     Returns: float containing Recall_k@at
     """
-    num_rel = labels.count(1)
+    num_rel = len([l for l in labels if l>=1])
     #'removing' candidates (relevant has to be in first positions in labels)
     preds = preds[:k]
     labels = labels[:k]
 
     sorted_labels = [x for _,x in sorted(zip(preds, labels), reverse=True)]
-    hits = sorted_labels[:at].count(1)
+    hits = len([l for l in sorted_labels[:at] if l>=1])    
     return hits/num_rel
 
 def evaluate_models(results):

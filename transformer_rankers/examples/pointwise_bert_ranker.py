@@ -47,6 +47,8 @@ def run_experiment(args):
                         nrows=args.sample_data if args.sample_data != -1 else None)
     valid = pd.read_csv(args.data_folder+args.task+"/test.tsv", sep="\t",
                         nrows=args.sample_data if args.sample_data != -1 else None)
+    #Datasets with multiple relevance labels have 3 columns.
+    num_labels = 2 if len(train.columns) < 3 else len(train[train.columns[2]].unique()) + 1
 
     #Choose the negative candidate sampler
     document_col = train.columns[1]
@@ -81,10 +83,8 @@ def run_experiment(args):
 
     #Instantiate transformer model to be used
     model = pointwise_bert.BertForPointwiseLearning.from_pretrained(args.transformer_model,
-            loss_function=args.loss_function, smoothing=args.smoothing)
-
+            num_labels=num_labels, loss_function=args.loss_function, smoothing=args.smoothing)        
     model.resize_token_embeddings(len(dataloader.tokenizer))
-
 
     #Instantiate trainer that handles fitting.
     trainer = transformer_trainer.TransformerTrainer(model, train_loader, val_loader, test_loader, 

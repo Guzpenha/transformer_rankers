@@ -14,7 +14,6 @@ class BertForPointwiseLearning(modeling_bert.BertPreTrainedModel):
 
         #There should be at least relevant and non relevant options (>2).
         self.num_labels = config.num_labels
-
         self.bert = modeling_bert.BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, self.num_labels)
@@ -45,7 +44,7 @@ class BertForPointwiseLearning(modeling_bert.BertPreTrainedModel):
         logits = self.classifier(pooled_output)
 
         loss = None
-        if labels is not None:            
+        if labels is not None:
             loss = self.loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
         output = (logits,) + outputs[2:]
