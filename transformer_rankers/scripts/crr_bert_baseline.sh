@@ -3,8 +3,8 @@ source /ssd/gustavo/transformer_rankers/env/bin/activate
 REPO_DIR=/ssd/gustavo/transformer_rankers
 ANSERINI_FOLDER=/ssd/gustavo/anserini/
 
-VALIDATE_EVERY_X_STEPS=400
-TRAIN_INSTANCES=100000
+VALIDATE_EVERY_X_STEPS=100
+TRAIN_INSTANCES=300000
 WANDB_PROJECT='library-crr-bert-baseline'
 
 for SEED in 1 2 3 4 5
