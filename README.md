@@ -97,5 +97,7 @@ for metric, v in res.items():
     logging.info("Test {} : {:4f}".format(metric, v))
 ```
 
-## Colab example
+## Examples
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jKTu8UMpG_eAe8RiPS0De4-FLRd49kRf?usp=sharing) Fine tune pointwise BERT for Community Question Answering.
+
+[![Wandb report](https://img.shields.io/badge/wandb-Open%20report-yellow) ](https://wandb.ai/guz/library-crr-bert-baseline/reports/BERT-ranker-baselines-for-CRR--Vmlldzo0NDcyMzU) Wandb report of fine tunning BERT for Conversation Response Ranking.
