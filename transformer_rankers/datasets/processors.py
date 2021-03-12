@@ -191,26 +191,28 @@ def mantis_processor(data_folder):
     and preprocess it into a DF with ["conversational_context", "response"] columns.
     """
     #Deal with drive files
-    archive = py7zr.SevenZipFile(data_folder+"drive_file", mode='r')
-    archive.extractall(path=data_folder)
-    archive.close()
+    with zipfile.ZipFile(data_folder+"drive_file","r") as zip_ref:
+        zip_ref.extractall(data_folder)
+    # archive = py7zr.SevenZipFile(data_folder+"drive_file", mode='r')
+    # archive.extractall(path=data_folder)
+    # archive.close()
 
     #Transform tsv to two column pandas dfs.
-    train = preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_train_easy.tsv")
-    valid = preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_dev_easy.tsv")
-    test =  preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_test_easy.tsv")
+    # train = preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_train_easy.tsv")
+    # valid = preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_dev_easy.tsv")
+    # test =  preprocess_crr.read_crr_tsv_as_df(data_folder+"/data_test_easy.tsv")
 
     #Save files with correct formats
-    train.to_csv(data_folder+"/train.tsv", index=False, sep="\t")
-    valid.to_csv(data_folder+"/valid.tsv", index=False, sep="\t")
-    test.to_csv(data_folder+"/test.tsv", index=False, sep="\t")
+    # train.to_csv(data_folder+"/train.tsv", index=False, sep="\t")
+    # valid.to_csv(data_folder+"/valid.tsv", index=False, sep="\t")
+    # test.to_csv(data_folder+"/test.tsv", index=False, sep="\t")
 
     #Clean folder
     os.remove(data_folder+"drive_file")
-    os.remove(data_folder+"data_dev_easy_lookup.txt")
-    os.remove(data_folder+"data_test_easy_lookup.txt")
-    os.remove(data_folder+"data_train_easy_lookup.txt")
-    os.remove(data_folder+"data_train_easy.tsv")
-    os.remove(data_folder+"data_dev_easy.tsv")
-    os.remove(data_folder+"data_test_easy.tsv")
+    # os.remove(data_folder+"data_dev_easy_lookup.txt")
+    # os.remove(data_folder+"data_test_easy_lookup.txt")
+    # os.remove(data_folder+"data_train_easy_lookup.txt")
+    # os.remove(data_folder+"data_train_easy.tsv")
+    # os.remove(data_folder+"data_dev_easy.tsv")
+    # os.remove(data_folder+"data_test_easy.tsv")
 

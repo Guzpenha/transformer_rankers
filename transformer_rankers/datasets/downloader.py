@@ -11,7 +11,7 @@ TASK_TO_URLS = {
     "clariq": ["https://github.com/aliannejadi/ClariQ/raw/master/data/train.tsv",
                "https://github.com/aliannejadi/ClariQ/raw/master/data/dev.tsv"], # https://github.com/aliannejadi/ClariQ
     # Conversation Response Ranking (CRR)
-    "mantis": [ "https://docs.google.com/uc?export=download&id=1nf_JRR7zIcCLrzvL_vRsuzBxDcD_3g6N"], # https://guzpenha.github.io/MANtIS/ 
+    "mantis": [ "https://docs.google.com/uc?export=download&id=17Uj9EwyGGCk9w_LIqDjlTx1y4MU7xxPv"], # https://guzpenha.github.io/MANtIS/ 
     "msdialog": [ "https://docs.google.com/uc?export=download&id=1R_c8b7Yi0wChA_du3eKDtnOGuYTqVhnY"], # https://ciir.cs.umass.edu/downloads/msdialog/
     "ubuntu_dstc8": ["https://docs.google.com/uc?export=download&id=1Ypu-tIu4nT3rZ86bcqAx-lKeNomyve5N"], # https://github.com/dstc8-track2/NOESIS-II
     # Passage Retrieval (PR)
