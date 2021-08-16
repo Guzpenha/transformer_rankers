@@ -40,6 +40,7 @@ dataDownloader.download_and_preprocess()
 ```
 And train BERT for pointwise learning to rank with randomly sampled negative samples:
 ```python
+from transformers import BertTokenizer
 from transformer_rankers.models import pointwise_bert
 from transformer_rankers.trainers import transformer_trainer
 from transformer_rankers.datasets import dataset, preprocess_crr
