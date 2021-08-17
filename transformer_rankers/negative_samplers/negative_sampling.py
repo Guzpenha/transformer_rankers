@@ -151,7 +151,7 @@ if PYSERINI_USABLE:
             """
             #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
             query_str = query_str[-max_query_len:]
-            sampled_initial = [ (hit.raw, hit.score) for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
+            sampled_initial = [ (json.loads(hit.raw)['contents'], hit.score) for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
             was_relevant_sampled = False
             relevant_doc_rank = -1
             sampled = []
