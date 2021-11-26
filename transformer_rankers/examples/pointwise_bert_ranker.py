@@ -47,7 +47,7 @@ def run_experiment(args):
                         nrows=args.sample_data if args.sample_data != -1 else None)
     valid = pd.read_csv(args.data_folder+args.task+"/test.tsv", sep="\t",
                         nrows=args.sample_data if args.sample_data != -1 else None)
-    #Datasets with multiple relevance labels have 3 columns.
+    #Datasets with multiple relevance levels have 3 columns.
     num_labels = 2 if len(train.columns) < 3 else len(train[train.columns[2]].unique()) + 1
 
     #Choose the negative candidate sampler
@@ -56,7 +56,7 @@ def run_experiment(args):
         ns_train = negative_sampling.RandomNegativeSampler(list(train[document_col].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
         ns_train = negative_sampling.BM25NegativeSamplerPyserini(list(train[document_col].values), args.num_ns_train, 
-                    args.data_folder+args.task+"/anserini_train/", args.sample_data, args.anserini_folder)
+                    args.data_folder+args.task+"/anserini_train_{}/".format(args.sample_data), args.sample_data, args.anserini_folder)
     elif args.train_negative_sampler == 'sentenceBERT':
         ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train[document_col].values), args.num_ns_train, 
                     args.data_folder+args.task+"/train_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)        
@@ -65,7 +65,7 @@ def run_experiment(args):
         ns_val = negative_sampling.RandomNegativeSampler(list(valid[document_col].values) + list(train[document_col].values), args.num_ns_eval)
     elif args.test_negative_sampler == 'bm25':
         ns_val = negative_sampling.BM25NegativeSamplerPyserini(list(valid[document_col].values) + list(train[document_col].values),
-                    args.num_ns_eval, args.data_folder+args.task+"/anserini_test", args.sample_data, args.anserini_folder)
+                    args.num_ns_eval, args.data_folder+args.task+"/anserini_test_{}/".format(args.sample_data), args.sample_data, args.anserini_folder)
     elif args.test_negative_sampler == 'sentenceBERT':
         ns_val = negative_sampling.SentenceBERTNegativeSampler(list(valid[document_col].values) + list(train[document_col].values),
                     args.num_ns_eval, args.data_folder+args.task+"/valid_sentenceBERTembeds", args.sample_data, args.bert_sentence_model)

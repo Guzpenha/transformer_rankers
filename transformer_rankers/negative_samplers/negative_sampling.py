@@ -11,12 +11,13 @@ import traceback
 import json
 import pickle
 import faiss
-
+import re
 
 PYSERINI_USABLE = True
 if os.path.isdir("/usr/lib/jvm/java-11-openjdk-amd64"):
     os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
     from pyserini.search import SimpleSearcher
+    from pyserini.dsearch import SimpleDenseSearcher, TctColBertQueryEncoder
 else:
     PYSERINI_USABLE = False
     logging.info("No java found at /usr/lib/jvm/java-11-openjdk-amd64.")
@@ -66,6 +67,121 @@ class RandomNegativeSampler():
         return sampled, [random.uniform(0, 0.99) for i in range(len(sampled))], was_relevant_sampled, relevant_doc_rank
 
 if PYSERINI_USABLE:
+    class DenseRetrievalNegativeSamplerPyserini():
+        """
+        Sample candidates from a list of candidates using dense searcher from pyserini.
+
+        The class uses anserini and pyserini which requires JAVA and a installation of anserini.
+        It first generates the candidates, saving then to files, then creates the index via
+        anserini IndexCollection.
+
+        Args:
+            candidates: list of str containing the candidates
+            num_candidates_samples: int containing the number of negative samples for each query.        
+            path_index: str containing the path to create/load the anserini index.
+            sample_data: int indicating amount of candidates in the index (-1 if all)
+            anserini_folder: str containing the bin <anserini_folder>/target/appassembler/bin/IndexCollection
+            set_rm3: boolean indicating whether to use rm3 or not.
+            seed: int with the random seed
+        """
+        def __init__(self, candidates, num_candidates_samples, path_index, sample_data, anserini_folder, seed=42):
+            random.seed(seed)
+            self.candidates = candidates
+            self.num_candidates_samples = num_candidates_samples
+            self.path_index  = path_index
+            self.name = "TCT-ColBERT"
+            self.sample_data = sample_data
+            self.anserini_folder = anserini_folder
+            self._create_index()
+
+            encoder = TctColBertQueryEncoder('castorini/tct_colbert-msmarco')
+            self.searcher = SimpleDenseSearcher(self.path_index+"anserini_index_dense", encoder)
+            self.doc_searcher = SimpleSearcher(self.path_index+"anserini_index")
+
+        def _generate_anserini_json_collection(self):
+            """
+            From a list of str documents to the documents in the anserini expected json format.
+            """
+            documents = []
+            doc_set = set()
+            doc_id = 0
+            for candidate in self.candidates:
+                documents.append({'id': doc_id,
+                                'contents': candidate})
+                doc_id+=1
+            return documents
+
+        def _create_index(self):
+            """
+            Index candidates in case they are not already indexed.
+            """
+            json_files_path = self.path_index+"json_documents_cand_{}".format(self.sample_data)
+            if not os.path.isdir(json_files_path):
+                os.makedirs(json_files_path)
+                docs = self._generate_anserini_json_collection()
+                for i, doc in enumerate(docs):
+                    with open(json_files_path+'/docs{:02d}.json'.format(i), 'w', encoding='utf-8', ) as f:
+                        f.write(json.dumps(doc) + '\n')        
+
+                #Run index java command
+                os.system("sh {}target/appassembler/bin/IndexCollection -collection JsonCollection"   \
+                            " -generator DefaultLuceneDocumentGenerator -threads 9 -input {}" \
+                            " -index {}anserini_index -storePositions -storeDocvectors -storeRaw". \
+                            format(self.anserini_folder, json_files_path, self.path_index))
+            
+            if not os.path.isdir(self.path_index+'anserini_index_dense'):
+                os.system("python -m pyserini.dindex --corpus {}" \
+                            " --encoder \'castorini/tct_colbert-msmarco\'" \
+                            " --index {}anserini_index_dense/" \
+                            " --batch 64" \
+                            " --device cuda:0".format(json_files_path, self.path_index))
+
+        def sample(self, query_str, relevant_docs, max_query_len = 512):
+            """
+            Samples from a list of candidates using BM25.
+            
+            If the samples match the relevant doc, 
+            then removes it and re-samples randomly.
+
+            Args:
+                query_str: the str of the query to be used for BM25
+                relevant_docs: list with the str of the relevant documents, to avoid sampling them as negative sample.
+                max_query_len: int containing the maximum number of characters to use as input. (Very long queries will raise a maxClauseCount from anserini.)                
+
+            Returns:
+                First the sampled_documents, their respective scores and then indicators if the NS retrieved the relevant
+                document, and if so at which position.
+            """
+            #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
+            query_str = query_str[-max_query_len:]
+            sampled_initial = [ (json.loads(self.doc_searcher.doc(hit.docid).raw())['contents'], hit.score) for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
+            was_relevant_sampled = False
+            relevant_doc_rank = -1
+            sampled = []
+            scores = []
+            for i, ds in enumerate(sampled_initial):
+                doc, score = ds
+                if doc in relevant_docs:
+                    was_relevant_sampled = True
+                    relevant_doc_rank = i
+                else:
+                    sampled.append(doc)
+                    scores.append(score)
+
+            scores_for_random=[0 for i in range(self.num_candidates_samples-len(sampled))]
+            while len(sampled) != self.num_candidates_samples: 
+                    sampled = sampled + \
+                        [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
+                            if d not in relevant_docs]
+
+            if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
+                normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
+            else:
+                normalized_scores = []
+            
+            normalized_scores = list(normalized_scores) + scores_for_random
+            return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank
+
     class BM25NegativeSamplerPyserini():
         """
         Sample candidates from a list of candidates using BM25.
@@ -99,7 +215,7 @@ if PYSERINI_USABLE:
             self.searcher = SimpleSearcher(self.path_index+"anserini_index")
             self.searcher.set_bm25(0.9, 0.4)
             if set_rm3:
-                self.searcher.set_rm3()
+                self.searcher.set_rm3(fb_docs=15)
 
         def _generate_anserini_json_collection(self):
             """
@@ -150,6 +266,7 @@ if PYSERINI_USABLE:
                 document, and if so at which position.
             """
             #Some long queryies exceeds the maxClauseCount from anserini, so we cut from right to left.
+            query_str = re.sub('[\W_]', ' ',  query_str)
             query_str = query_str[-max_query_len:]
             sampled_initial = [ (json.loads(hit.raw)['contents'], hit.score) for hit in self.searcher.search(query_str, k=self.num_candidates_samples)]
             was_relevant_sampled = False
@@ -210,7 +327,7 @@ class SentenceBERTNegativeSampler():
             e.g. bert-base-nli-stsb-mean-tokens.
     """
     def __init__(self, candidates, num_candidates_samples, embeddings_file, sample_data, 
-                pre_trained_model='bert-base-nli-stsb-mean-tokens', seed=42):
+                pre_trained_model="all-MiniLM-L6-v2", seed=42):
         random.seed(seed)
         self.candidates = candidates
         self.num_candidates_samples = num_candidates_samples
@@ -292,11 +409,11 @@ class SentenceBERTNegativeSampler():
                 sampled = sampled + \
                     [d for d in random.sample(self.candidates, self.num_candidates_samples-len(sampled))  
                         if d not in relevant_docs]
-        if len(scores) != 0: #corner case where only 1 sample and it is the relevant doc.
+        if len(scores) != 0: 
             normalized_scores = preprocessing.minmax_scale(scores, feature_range=(0.01, 0.99))
-        else:
+            normalized_scores = 1-normalized_scores # similarity instead of distances.
+        else: #corner case where only 1 sample and it is the relevant doc.
             normalized_scores = []
-        
-        normalized_scores = 1-normalized_scores # similarity instead of distances.
+
         normalized_scores = list(normalized_scores) + scores_for_random
         return sampled, normalized_scores, was_relevant_sampled, relevant_doc_rank
