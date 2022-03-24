@@ -68,6 +68,7 @@ def main():
     examples_cols = ["context", "relevant_response"] + \
         reduce(lambda x,y:x+y, [t[1] for t in ns_info])
     logging.info("Retrieving candidates using different negative sampling strategies for {}.".format(args.task))
+    recall_df = []
     for idx, row in enumerate(tqdm(test.itertuples(index=False), total=len(test))):
         context = row[0]
         relevant_response = row[1]
@@ -79,14 +80,24 @@ def main():
                 instance.append(ns)
             instance.append(had_relevant)
             instance.append(rank_relevant)
+            if had_relevant:
+                r10 = 1
+            else:
+                r10 = 0
+            if rank_relevant == 0:
+                r1 = 1
+            else:
+                r1 =0
+            recall_df.append([r10, r1])
         examples.append(instance)
 
+    recall_df  = pd.DataFrame(recall_df, columns = ["R@10", "R@1"])
+    recall_df.to_csv(args.output_dir+"/recall_df_{}_{}.csv".format(args.task, args.sentence_bert_model), index=False, sep="\t")
     examples_df = pd.DataFrame(examples, columns=examples_cols)
     print("R@10: {}".format(examples_df[[c for c in examples_df.columns if 'retrieved_relevant' in c]].sum()/examples_df.shape[0]))
     rank_col = [c for c in examples_df.columns if 'rank' in c][0]
     print("R@1: {}".format(examples_df[examples_df[rank_col]==0].shape[0]/examples_df.shape[0]))
     examples_df.to_csv(args.output_dir+"/negative_samples_{}_sample_{}.csv".format(args.task, args.sample_data), index=False, sep="\t")    
-    # embed()
 
 if __name__ == "__main__":
     main()

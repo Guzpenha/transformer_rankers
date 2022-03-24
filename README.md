@@ -9,8 +9,14 @@
 <img alt="license" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </a>
 
-A library to conduct ranking experiments with transformers. 
+Transformer-rankers is a library to conduct ranking experiments with transformers. 
 
+Most of the research experiments performed focused on the task of conversation response ranking, see [EACL'21](https://arxiv.org/abs/2012.08575) and [ECIR'20](https://arxiv.org/abs/2101.04356). This repo is intended to be used to perform research experiments and not to create production ready systems. Better alternatives for general ranking models are either [pyterrier](https://pyterrier.readthedocs.io/en/latest/) or [pyserini](https://github.com/castorini/pyserini).
+
+## Examples
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wGmaO3emC7Sg-tA7nGehIQ2vjOLN9S5e?usp=sharing) Fine tune pointwise BERT for conversation response ranking.
+
+[![Wandb report](https://img.shields.io/badge/wandb-Open%20report-yellow) ](https://wandb.ai/guz/library-crr-bert-baseline/reports/BERT-ranker-baselines-for-CRR--Vmlldzo0NDcyMzU) Wandb report of fine tunning BERT for conversation response ranking.
 
 ## Setup
 The following will clone the repo, install a virtual env and install the library with the requirements.
@@ -27,8 +33,8 @@ source env/bin/activate
 pip install -e .
 pip install -r requirements.txt
 ```
-## Example: BERT-ranker for dialogue
-The following example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus. We can download the data as follows:
+## Code example: BERT-ranker for dialogue
+The folowing example uses BERT for the task of conversation response ranking using [MANtIS](https://guzpenha.github.io/MANtIS/) corpus. We can download the data as follows:
 
 ```python
 from transformer_rankers.datasets import downloader
@@ -97,8 +103,3 @@ res = results_analyses_tools.\
 for metric, v in res.items():
     logging.info("Test {} : {:4f}".format(metric, v))
 ```
-
-## Examples
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wGmaO3emC7Sg-tA7nGehIQ2vjOLN9S5e?usp=sharing) Fine tune pointwise BERT for Conversation Response Ranking.
-
-[![Wandb report](https://img.shields.io/badge/wandb-Open%20report-yellow) ](https://wandb.ai/guz/library-crr-bert-baseline/reports/BERT-ranker-baselines-for-CRR--Vmlldzo0NDcyMzU) Wandb report of fine tunning BERT for Conversation Response Ranking.

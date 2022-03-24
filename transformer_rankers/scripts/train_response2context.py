@@ -51,16 +51,19 @@ def main():
         r = r.replace("<<<AGENT>>>:", "")
         r = r.replace("PERSON_PLACEHOLDER", "")
         r = r.replace("AGENT", "")
-        print(r)
         return r
 
     def preprocess_context(r):
         #removes beginning of context and keeps only last utterance.
-        return r.split("[TURN_SEP]")[-1].split("[UTTERANCE_SEP]")[0].strip()
+        if 'msdialog' in r['task']:
+            context = r['context'].split("[TURN_SEP]")[-1].split("[UTTERANCE_SEP]")[0].strip()
+        else:
+            context = r['context'].split("[TURN_SEP]")[-1].split("[UTTERANCE_SEP]")[-2].strip()
+        return context
 
     all_df["response"] = all_df.apply(lambda r,f=preprocess_response: f(r['response']), axis=1)
     if args.last_utterance_only:
-        all_df["context"] = all_df.apply(lambda r,f=preprocess_context: f(r['context']), axis=1)
+        all_df["context"] = all_df.apply(lambda r,f=preprocess_context: f(r), axis=1)
 
     dataset = Dataset.from_pandas(all_df)
 

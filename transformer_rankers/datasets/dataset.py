@@ -217,7 +217,7 @@ class QueryDocumentDataset(data.Dataset):
                 relevant_documents = row[1]
                 for relevant_document in relevant_documents:
                     examples.append((query, relevant_document))
-                ns_candidates, _ , _ , _ = self.negative_sampler.sample(query, relevant_documents)
+                ns_candidates, _ , _ , _, _ = self.negative_sampler.sample(query, relevant_documents)
                 for ns in ns_candidates:
                     examples.append((query, ns))
 
@@ -298,7 +298,7 @@ class QueryDocumentDataset(data.Dataset):
                     relevant_documents = row[1]
                     for relevant_document in relevant_documents:
                         examples.append((query, relevant_document))
-                    ns_candidates, _ , _ , _ = self.negative_sampler.sample(query, relevant_documents)
+                    ns_candidates, _ , _ , _, _= self.negative_sampler.sample(query, relevant_documents)
                     for ns in ns_candidates:
                         examples.append((query, ns))
 
@@ -449,7 +449,7 @@ class QueryPosDocNegDocDataset(data.Dataset):
             for idx, row in enumerate(tqdm(self.data.itertuples(index=False), total=len(self.data))):
                 query = row[0]
                 relevant_documents = row[1]
-                ns_candidates, _ ,  _ , _ = self.negative_sampler.sample(query, relevant_documents)                
+                ns_candidates, _ ,  _ , _, _= self.negative_sampler.sample(query, relevant_documents)                
                 for rel_doc in relevant_documents:
                     if self.data_partition == 'train':
                         for ns_doc in ns_candidates:
@@ -625,7 +625,7 @@ class WeaklySupervisedQueryDocumentDataset(data.Dataset):
                 for relevant_document in relevant_documents:
                     examples.append((query, relevant_document))
                     labels.append(1.0)
-                ns_candidates, ns_scores, _, _ = self.negative_sampler.sample(query, relevant_documents)                
+                ns_candidates, ns_scores, _, _, _ = self.negative_sampler.sample(query, relevant_documents)                
 
                 for i, ns in enumerate(ns_candidates):
                     examples.append((query, ns))
@@ -690,7 +690,7 @@ class WeaklySupervisedQueryDocumentDataset(data.Dataset):
                     for relevant_document in relevant_documents:
                         examples.append((query, relevant_document))
                         labels.append(1.0)
-                    ns_candidates, ns_scores, _, _ = self.negative_sampler.sample(query, relevant_documents)                
+                    ns_candidates, ns_scores, _, _, _= self.negative_sampler.sample(query, relevant_documents)                
 
                     for i, ns in enumerate(ns_candidates):
                         examples.append((query, ns))

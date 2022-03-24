@@ -39,13 +39,12 @@ def main():
         r = r.replace("<<<AGENT>>>:", "")
         r = r.replace("PERSON_PLACEHOLDER", "")
         r = r.replace("AGENT", "")
-        print(r)
         return r
     
     tasks = [args.task] 
 
     for task in tasks:
-        for split in ['train', 'test']: #['train', 'valid', 'test']:
+        for split in ['train', 'valid', 'test']:
             print("Applying on {}/{}".format(task, split))
             data = pd.read_csv(args.data_folder+task+"/{}.tsv".format(split), sep="\t")
 

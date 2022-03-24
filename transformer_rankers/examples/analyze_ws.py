@@ -79,7 +79,7 @@ def run_experiment(args):
         query_labels = []
         for relevant_document in relevant_documents:
             query_labels.append(1.0)
-        ns_candidates, ns_scores, _, _ = ns_train.sample(query, relevant_documents)
+        ns_candidates, ns_scores, _, _, _= ns_train.sample(query, relevant_documents)
         for i, ns in enumerate(ns_candidates):
             query_labels.append(ns_scores[i])
         labels.append(query_labels)

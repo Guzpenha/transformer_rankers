@@ -48,26 +48,27 @@ def main():
                         nrows=args.sample_data if args.sample_data != -1 else None)
     # embed()
 
-    # ns_test_random = negative_sampling.RandomNegativeSampler(list(train["response"].values)+list(test["response"].values), args.num_ns)    
+    ns_test_random = negative_sampling.RandomNegativeSampler(list(train["response"].values)+list(test["response"].values), args.num_ns)    
     # ns_test_bm25 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values)+list(test["response"].values), args.num_ns,
     #             args.data_folder+args.task+"/anserini_test_{}/".format(args.sample_data), args.sample_data, args.anserini_folder)
-    # ns_test_bm25_rm3 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values)+list(test["response"].values), args.num_ns,
-    #            args.data_folder+args.task+"/anserini_test_{}/".format(args.sample_data), args.sample_data, args.anserini_folder, set_rm3=True)    
-    ns_test_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values)+list(test["response"].values), args.num_ns, 
-                   args.data_folder+args.task+"/test_sentenceBERTembeds", args.sample_data, args.sentence_bert_model,
-                   use_cache_for_embeddings=False)
+    ns_test_bm25_rm3 = negative_sampling.BM25NegativeSamplerPyserini(list(train["response"].values)+list(test["response"].values), args.num_ns,
+               args.data_folder+args.task+"/anserini_test_{}/".format(args.sample_data), args.sample_data, args.anserini_folder, set_rm3=True)    
+    # ns_test_sentenceBERT = negative_sampling.SentenceBERTNegativeSampler(list(train["response"].values)+list(test["response"].values), args.num_ns, 
+    #                args.data_folder+args.task+"/test_sentenceBERTembeds", args.sample_data, args.sentence_bert_model,
+    #                use_cache_for_embeddings=False)
 
     ns_info = [
-        # (ns_test_random, ["cand_random_{}".format(i) for i in range(args.num_ns)] + ["random_retrieved_relevant", "random_rank"], 'random'),
+        (ns_test_random, ["cand_random_{}".format(i) for i in range(args.num_ns)] + ["random_retrieved_relevant", "random_rank"], 'random'),
         # (ns_test_bm25, ["cand_bm25_{}".format(i) for i in range(args.num_ns)] + ["bm25_retrieved_relevant", "bm25_rank"], 'bm25'),
-        # (ns_test_bm25_rm3,["cand_bm25rm3_{}".format(i) for i in range(args.num_ns)] + ["bm25rm3_retrieved_relevant", "bm25rm3_rank"], 'bm25rm3'),        
-        (ns_test_sentenceBERT, ["cand_sentenceBERT_{}".format(i) for i in range(args.num_ns)] + ["sentenceBERT_retrieved_relevant", "sentenceBERT_rank"], 'sentenceBERT')
+        (ns_test_bm25_rm3,["cand_bm25rm3_{}".format(i) for i in range(args.num_ns)] + ["bm25rm3_retrieved_relevant", "bm25rm3_rank"], 'bm25rm3'),        
+        # (ns_test_sentenceBERT, ["cand_sentenceBERT_{}".format(i) for i in range(args.num_ns)] + ["sentenceBERT_retrieved_relevant", "sentenceBERT_rank"], 'sentenceBERT')
     ]
 
     examples = []
     examples_cols = ["context", "relevant_response"] + \
         reduce(lambda x,y:x+y, [t[1] for t in ns_info])
     logging.info("Retrieving candidates using different negative sampling strategies for {}.".format(args.task))
+    recall_df = []
     for idx, row in enumerate(tqdm(test.itertuples(index=False), total=len(test))):
         context = row[0]
         relevant_response = row[1]
@@ -79,13 +80,25 @@ def main():
                 instance.append(ns)
             instance.append(had_relevant)
             instance.append(rank_relevant)
+            if had_relevant:
+                r10 = 1
+            else:
+                r10 = 0
+            if rank_relevant == 0:
+                r1 = 1
+            else:
+                r1 = 0
+            recall_df.append([r10, r1, ns_name])
         examples.append(instance)
 
-    examples_df = pd.DataFrame(examples, columns=examples_cols)
-    print("R@10: {}".format(examples_df[[c for c in examples_df.columns if 'retrieved_relevant' in c]].sum()/examples_df.shape[0]))
-    rank_col = [c for c in examples_df.columns if 'rank' in c][0]
-    print("R@1: {}".format(examples_df[examples_df[rank_col]==0].shape[0]/examples_df.shape[0]))
-    examples_df.to_csv(args.output_dir+"/negative_samples_{}_sample_{}.csv".format(args.task, args.sample_data), index=False, sep="\t")    
+    recall_df  = pd.DataFrame(recall_df, columns = ["R@10", "R@1", "NS"])
+    recall_df[recall_df["NS"]=="random"][["R@10", "R@1"]].to_csv(args.output_dir+"/recall_df_random_{}.csv".format(args.task), index=False, sep="\t")
+    recall_df[recall_df["NS"]=="bm25rm3"][["R@10", "R@1"]].to_csv(args.output_dir+"/recall_df_bm25rm3_{}.csv".format(args.task), index=False, sep="\t")
+    # examples_df = pd.DataFrame(examples, columns=examples_cols)
+    # print("R@10: {}".format(examples_df[[c for c in examples_df.columns if 'retrieved_relevant' in c]].sum()/examples_df.shape[0]))
+    # rank_col = [c for c in examples_df.columns if 'rank' in c][0]
+    # print("R@1: {}".format(examples_df[examples_df[rank_col]==0].shape[0]/examples_df.shape[0]))
+    # examples_df.to_csv(args.output_dir+"/negative_samples_{}_sample_{}.csv".format(args.task, args.sample_data), index=False, sep="\t")
     # embed()
 
 if __name__ == "__main__":
