@@ -4,7 +4,7 @@ numpy==1.22.0
 pandas==1.0.4
 pytrec-eval==0.4
 sacred==0.8.1
-torch==1.5.0
+torch==1.13.1
 tqdm==4.46.1
 transformers==3.0.2
 scipy==1.4.1
