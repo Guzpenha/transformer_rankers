@@ -13,6 +13,6 @@ faiss-cpu==1.6.3
 dataclasses
 pyserini==0.13.0
 wget==3.2
-py7zr==0.9.5
+py7zr==0.20.2
 wandb==0.9.7
 python-terrier==0.7.0
