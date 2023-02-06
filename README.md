@@ -13,7 +13,7 @@ Transformer-rankers is a library to conduct ranking experiments with transformer
 
 **This library was developed during my PhD (2019--2022) and is no longer mantained**.
 
-Most of the research experiments performed here focused on the task of conversation response ranking, see [ECIR'23](https://arxiv.org/abs/2301.05508), [EACL'21](https://arxiv.org/abs/2012.08575) and [ECIR'20](https://arxiv.org/abs/2101.04356). This repo is intended to be used to perform research experiments (and most of all reproduce experiments from the papers) and not to create production ready systems. Better alternatives for general ranking models are either [pyterrier](https://pyterrier.readthedocs.io/en/latest/) or [pyserini](https://github.com/castorini/pyserini).
+Most of the research experiments performed here focused on the task of conversation response ranking, see [ECIR'23](https://arxiv.org/abs/2301.05508), [EACL'21](https://aclanthology.org/2021.eacl-main.12/) and [ECIR'21](https://arxiv.org/abs/2012.08575). This repo is intended to be used to perform research experiments (and most of all reproduce experiments from the papers) and not to create production ready systems. Better alternatives for general ranking models are either [pyterrier](https://pyterrier.readthedocs.io/en/latest/) or [pyserini](https://github.com/castorini/pyserini).
 
 ## Examples
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wGmaO3emC7Sg-tA7nGehIQ2vjOLN9S5e?usp=sharing) Fine tune pointwise BERT for conversation response ranking.
